@@ -1,50 +1,40 @@
 /**
- * Header Component
- * Screen header with title and optional subtitle/back action.
+ * Header Component — SafePlay Timer Style
+ * Purple top bar with clock and lock icons.
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HeaderProps {
-    title: string;
-    subtitle?: string;
-    variant?: 'parent' | 'child';
-    showBack?: boolean;
-    onBack?: () => void;
+    title?: string;
+    showLock?: boolean;
+    onLockPress?: () => void;
 }
 
 export default function Header({
-    title,
-    subtitle,
-    variant = 'parent',
-    showBack = false,
-    onBack,
+    title = 'SafePlay Timer',
+    showLock = true,
+    onLockPress,
 }: HeaderProps) {
-    const isChild = variant === 'child';
+    const insets = useSafeAreaInsets();
 
     return (
-        <View style={[styles.container, isChild && styles.childContainer]}>
-            <View style={styles.row}>
-                {showBack && onBack && (
-                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Text style={[styles.backIcon, isChild && styles.childBackIcon]}>
-                            ←
-                        </Text>
+        <View style={[styles.container, { paddingTop: insets.top + Layout.spacing.sm }]}>
+            <View style={styles.content}>
+                <Ionicons name="time-outline" size={24} color={Colors.header.icon} />
+                <Text style={styles.title}>{title}</Text>
+                {showLock ? (
+                    <TouchableOpacity onPress={onLockPress} style={styles.lockButton}>
+                        <Ionicons name="lock-closed-outline" size={24} color={Colors.header.icon} />
                     </TouchableOpacity>
+                ) : (
+                    <View style={styles.placeholder} />
                 )}
-                <View style={styles.textContainer}>
-                    <Text style={[styles.title, isChild && styles.childTitle]}>
-                        {title}
-                    </Text>
-                    {subtitle && (
-                        <Text style={[styles.subtitle, isChild && styles.childSubtitle]}>
-                            {subtitle}
-                        </Text>
-                    )}
-                </View>
             </View>
         </View>
     );
@@ -52,47 +42,33 @@ export default function Header({
 
 const styles = StyleSheet.create({
     container: {
+        backgroundColor: Colors.header.background,
         paddingHorizontal: Layout.screen.paddingHorizontal,
-        paddingTop: Layout.spacing.lg,
         paddingBottom: Layout.spacing.md,
+        borderBottomLeftRadius: Layout.radius.xl,
+        borderBottomRightRadius: Layout.radius.xl,
+        // Elevation/Shadow
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 10,
     },
-    childContainer: {
-        paddingTop: Layout.spacing.xl,
-    },
-    row: {
+    content: {
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    backButton: {
-        marginRight: Layout.spacing.md,
-        padding: Layout.spacing.xs,
-    },
-    backIcon: {
-        fontSize: 24,
-        color: Colors.parent.textPrimary,
-    },
-    childBackIcon: {
-        fontSize: 28,
-        color: Colors.child.textPrimary,
-    },
-    textContainer: {
-        flex: 1,
+        justifyContent: 'space-between',
     },
     title: {
-        ...Typography.parent.title,
-        color: Colors.parent.textPrimary,
+        ...Typography.child.subtitle,
+        color: Colors.header.text,
+        textAlign: 'center',
+        flex: 1,
     },
-    childTitle: {
-        ...Typography.child.title,
-        color: Colors.child.textPrimary,
+    lockButton: {
+        padding: Layout.spacing.xs,
     },
-    subtitle: {
-        ...Typography.parent.body,
-        color: Colors.parent.textSecondary,
-        marginTop: 2,
-    },
-    childSubtitle: {
-        ...Typography.child.body,
-        color: Colors.child.textSecondary,
+    placeholder: {
+        width: 32,
     },
 });

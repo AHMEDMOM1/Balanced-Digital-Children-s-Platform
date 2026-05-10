@@ -1,255 +1,357 @@
 /**
- * Parent Home Screen
- * Dashboard with welcome header, quick stats, and action buttons.
+ * Parent Home Screen — SafePlay Timer Dashboard
+ * Professional overview of child usage with quick actions and activity history.
  */
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Header from '../../components/ui/Header';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
+import Header from '../../components/ui/Header';
 import useSettingsStore from '../../store/useSettingsStore';
 import useSessionStore from '../../store/useSessionStore';
 
 export default function ParentHomeScreen() {
+    const router = useRouter();
     const { dailyTimeLimitMinutes, sessionsPerDay } = useSettingsStore();
-    const { sessionsUsedToday, elapsedSeconds, isPaused } = useSessionStore();
-    const setPaused = useSessionStore((s) => s.setPaused);
+    const { sessionsUsedToday, elapsedSeconds, isPaused, setPaused } = useSessionStore();
 
     const minutesUsed = Math.floor(elapsedSeconds / 60);
     const sessionsRemaining = Math.max(0, sessionsPerDay - sessionsUsedToday);
-    const timePercentage = dailyTimeLimitMinutes > 0
-        ? Math.min(100, Math.round((minutesUsed / dailyTimeLimitMinutes) * 100))
-        : 0;
+    const progress = Math.min(1, minutesUsed / dailyTimeLimitMinutes);
 
     return (
         <SafeAreaView style={styles.safe}>
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                <Header
-                    title="Hoş Geldiniz 👋"
-                    subtitle="Ebeveyn Kontrol Paneli"
-                    variant="parent"
-                />
-
-                {/* ── Quick Stats ── */}
-                <View style={styles.statsRow}>
-                    <Card style={styles.statCard}>
-                        <Text style={styles.statEmoji}>⏱️</Text>
-                        <Text style={styles.statValue}>{minutesUsed}/{dailyTimeLimitMinutes}</Text>
-                        <Text style={styles.statLabel}>Bugünkü Dakika</Text>
-                        <View style={styles.progressBar}>
-                            <View style={[styles.progressFill, { width: `${timePercentage}%` }]} />
-                        </View>
-                    </Card>
-
-                    <Card style={styles.statCard}>
-                        <Text style={styles.statEmoji}>🎮</Text>
-                        <Text style={styles.statValue}>{sessionsRemaining}</Text>
-                        <Text style={styles.statLabel}>Kalan Seans</Text>
-                        <Text style={styles.statSub}>Toplam seans: {sessionsPerDay}</Text>
-                    </Card>
+            <Header showLock={false} />
+            
+            <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+                <View style={styles.welcomeSection}>
+                    <Text style={styles.welcomeTitle}>Good morning, Alex</Text>
+                    <Text style={styles.welcomeSubtitle}>Here is the daily overview for Leo's device.</Text>
                 </View>
 
-                {/* ── Status Banner ── */}
-                <Card
-                    style={[
-                        styles.statusCard,
-                        isPaused ? styles.statusPaused : styles.statusActive,
-                    ]}
-                >
-                    <View style={styles.statusRow}>
-                        <Text style={styles.statusEmoji}>{isPaused ? '⏸️' : '✅'}</Text>
-                        <View style={styles.statusTextContainer}>
-                            <Text style={styles.statusTitle}>
-                                {isPaused ? 'Erişim Duraklatıldı' : 'Erişim Açık'}
-                            </Text>
-                            <Text style={styles.statusSub}>
-                                {isPaused
-                                    ? 'Çocuğun erişimi geçici olarak durduruldu'
-                                    : 'Çocuk uygulamayı sınırlar dahilinde kullanabilir'}
-                            </Text>
+                {/* ── Time Today Card ── */}
+                <View style={styles.mainCard}>
+                    <View style={styles.cardHeader}>
+                        <View style={styles.iconCircle}>
+                            <Ionicons name="time" size={24} color={Colors.parent.primary} />
+                        </View>
+                        <Text style={styles.cardTitle}>Time Today</Text>
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>Daily Limit: {dailyTimeLimitMinutes / 60}h</Text>
                         </View>
                     </View>
-                </Card>
+
+                    <View style={styles.timeDisplay}>
+                        <Text style={styles.timeValue}>{minutesUsed}</Text>
+                        <Text style={styles.timeUnit}> / {dailyTimeLimitMinutes} min</Text>
+                    </View>
+
+                    <View style={styles.progressContainer}>
+                        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+                    </View>
+                </View>
+
+                {/* ── Secondary Stats ── */}
+                <View style={styles.statsRow}>
+                    <View style={styles.statCard}>
+                        <View style={[styles.statIconCircle, { backgroundColor: '#F2ECF4' }]}>
+                            <Ionicons name="layers-outline" size={20} color={Colors.parent.primary} />
+                        </View>
+                        <Text style={styles.statValue}>{sessionsRemaining}</Text>
+                        <Text style={styles.statLabel}>Sessions Left</Text>
+                    </View>
+
+                    <View style={styles.statCard}>
+                        <View style={[styles.statIconCircle, { backgroundColor: '#FFF4D1' }]}>
+                            <Ionicons name="star" size={20} color="#FFB800" />
+                        </View>
+                        <Text style={styles.statValue}>Brain Games</Text>
+                        <Text style={styles.statLabel}>Last App</Text>
+                    </View>
+                </View>
 
                 {/* ── Quick Actions ── */}
-                <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
-                <View style={styles.actionsRow}>
-                    <Button
-                        title={isPaused ? '▶️ Erişimi Başlat' : '⏸️ Duraklat'}
-                        variant={isPaused ? 'parent' : 'danger'}
-                        size="medium"
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <View style={styles.actionsContainer}>
+                    <TouchableOpacity 
+                        style={[styles.actionButton, styles.primaryAction]} 
                         onPress={() => setPaused(!isPaused)}
-                        style={styles.actionButton}
-                    />
-                    <Button
-                        title="📊 Raporlar"
-                        variant="outline"
-                        size="medium"
-                        onPress={() => { }}
-                        style={styles.actionButton}
-                    />
+                    >
+                        <Ionicons name={isPaused ? "play" : "pause"} size={20} color={Colors.shared.white} />
+                        <Text style={styles.primaryActionText}>{isPaused ? 'Resume Session' : 'Pause Session'}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.secondaryAction} onPress={() => router.push('/(parent)/reports')}>
+                        <Ionicons name="bar-chart-outline" size={20} color={Colors.parent.primary} />
+                        <Text style={styles.secondaryActionText}>View Reports</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.secondaryAction} onPress={() => router.push('/(parent)/control')}>
+                        <Ionicons name="settings-outline" size={20} color={Colors.parent.primary} />
+                        <Text style={styles.secondaryActionText}>Edit Rules</Text>
+                    </TouchableOpacity>
                 </View>
 
-                {/* ── Today's Summary ── */}
-                <Card style={styles.summaryCard}>
-                    <Text style={styles.summaryTitle}>📋 Günün Özeti</Text>
-                    <View style={styles.summaryRow}>
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryEmoji}>📖</Text>
-                            <Text style={styles.summaryItemLabel}>Hikayeler</Text>
-                            <Text style={styles.summaryItemValue}>— dk</Text>
-                        </View>
-                        <View style={styles.summaryDivider} />
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryEmoji}>🧩</Text>
-                            <Text style={styles.summaryItemLabel}>Oyunlar</Text>
-                            <Text style={styles.summaryItemValue}>— dk</Text>
-                        </View>
-                        <View style={styles.summaryDivider} />
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryEmoji}>🎨</Text>
-                            <Text style={styles.summaryItemLabel}>Yaratıcılık</Text>
-                            <Text style={styles.summaryItemValue}>— dk</Text>
-                        </View>
-                        <View style={styles.summaryDivider} />
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryEmoji}>🎬</Text>
-                            <Text style={styles.summaryItemLabel}>Videolar</Text>
-                            <Text style={styles.summaryItemValue}>— dk</Text>
-                        </View>
-                    </View>
-                </Card>
+                {/* ── Recent Activity ── */}
+                <View style={styles.recentHeader}>
+                    <Text style={styles.sectionTitle}>Recent Activity</Text>
+                    <TouchableOpacity>
+                        <Text style={styles.seeAll}>See All</Text>
+                    </TouchableOpacity>
+                </View>
 
-                <View style={{ height: Layout.spacing.xxl }} />
+                <View style={styles.activityList}>
+                    <ActivityItem 
+                        icon="play-circle" 
+                        title="Session Started" 
+                        subtitle="10:15 AM • Brain Games" 
+                        tag="Active"
+                    />
+                    <ActivityItem 
+                        icon="stop-circle" 
+                        title="Session Ended" 
+                        subtitle="Yesterday, 4:30 PM • StoryTime" 
+                        value="45m"
+                    />
+                </View>
             </ScrollView>
         </SafeAreaView>
+    );
+}
+
+function ActivityItem({ icon, title, subtitle, tag, value }: any) {
+    return (
+        <View style={styles.activityItem}>
+            <View style={styles.activityIcon}>
+                <Ionicons name={icon} size={24} color={Colors.parent.textSecondary} />
+            </View>
+            <View style={styles.activityInfo}>
+                <Text style={styles.activityTitle}>{title}</Text>
+                <Text style={styles.activitySubtitle}>{subtitle}</Text>
+            </View>
+            {tag && (
+                <View style={styles.activeTag}>
+                    <Text style={styles.activeTagText}>{tag}</Text>
+                </View>
+            )}
+            {value && <Text style={styles.activityValue}>{value}</Text>}
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: Colors.parent.background },
     container: { flex: 1 },
-
-    // ── Stats ──
-    statsRow: {
-        flexDirection: 'row',
+    content: {
         paddingHorizontal: Layout.screen.paddingHorizontal,
-        gap: Layout.spacing.md,
+        paddingTop: Layout.spacing.xl,
+        paddingBottom: Layout.spacing.xxl,
+    },
+    welcomeSection: {
+        marginBottom: Layout.spacing.xl,
+    },
+    welcomeTitle: {
+        ...Typography.parent.title,
+        fontSize: 24,
+        color: Colors.parent.primary,
+        marginBottom: 4,
+    },
+    welcomeSubtitle: {
+        ...Typography.parent.body,
+        color: Colors.parent.textSecondary,
+    },
+    mainCard: {
+        backgroundColor: Colors.parent.surface,
+        borderRadius: Layout.radius.xl,
+        padding: Layout.spacing.lg,
+        borderWidth: 1,
+        borderColor: Colors.parent.border,
         marginBottom: Layout.spacing.lg,
     },
-    statCard: {
-        flex: 1,
+    cardHeader: {
+        flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: Layout.spacing.lg,
+        marginBottom: Layout.spacing.lg,
     },
-    statEmoji: { fontSize: 28, marginBottom: Layout.spacing.sm },
-    statValue: {
-        ...Typography.parent.title,
+    iconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F2ECF4',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    cardTitle: {
+        ...Typography.parent.subtitle,
         color: Colors.parent.textPrimary,
+        flex: 1,
     },
-    statLabel: {
+    badge: {
+        backgroundColor: Colors.parent.inputBg,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: Layout.radius.full,
+    },
+    badgeText: {
         ...Typography.parent.caption,
         color: Colors.parent.textSecondary,
-        marginTop: 2,
+        fontWeight: '600',
     },
-    statSub: {
-        ...Typography.parent.caption,
+    timeDisplay: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        marginBottom: Layout.spacing.md,
+    },
+    timeValue: {
+        ...Typography.parent.title,
+        fontSize: 40,
+        color: Colors.parent.primary,
+    },
+    timeUnit: {
+        ...Typography.parent.body,
         color: Colors.parent.textSecondary,
-        fontSize: 11,
-        marginTop: 2,
+        marginLeft: 4,
     },
-    progressBar: {
-        width: '100%',
-        height: 6,
-        backgroundColor: Colors.parent.border,
-        borderRadius: 3,
-        marginTop: Layout.spacing.sm,
+    progressContainer: {
+        height: 10,
+        backgroundColor: Colors.parent.inputBg,
+        borderRadius: 5,
         overflow: 'hidden',
     },
     progressFill: {
         height: '100%',
         backgroundColor: Colors.parent.primary,
-        borderRadius: 3,
     },
-
-    // ── Status ──
-    statusCard: {
-        marginHorizontal: Layout.screen.paddingHorizontal,
-        marginBottom: Layout.spacing.lg,
-    },
-    statusActive: {
-        borderLeftWidth: 4,
-        borderLeftColor: Colors.shared.success,
-    },
-    statusPaused: {
-        borderLeftWidth: 4,
-        borderLeftColor: Colors.shared.warning,
-    },
-    statusRow: {
+    statsRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-    },
-    statusEmoji: { fontSize: 28, marginRight: Layout.spacing.md },
-    statusTextContainer: { flex: 1 },
-    statusTitle: {
-        ...Typography.parent.subtitle,
-        color: Colors.parent.textPrimary,
-    },
-    statusSub: {
-        ...Typography.parent.caption,
-        color: Colors.parent.textSecondary,
-        marginTop: 2,
-    },
-
-    // ── Actions ──
-    sectionTitle: {
-        ...Typography.parent.label,
-        color: Colors.parent.textPrimary,
-        paddingHorizontal: Layout.screen.paddingHorizontal,
-        marginBottom: Layout.spacing.md,
-    },
-    actionsRow: {
-        flexDirection: 'row',
-        paddingHorizontal: Layout.screen.paddingHorizontal,
         gap: Layout.spacing.md,
-        marginBottom: Layout.spacing.lg,
+        marginBottom: Layout.spacing.xl,
     },
-    actionButton: { flex: 1 },
-
-    // ── Summary ──
-    summaryCard: {
-        marginHorizontal: Layout.screen.paddingHorizontal,
+    statCard: {
+        flex: 1,
+        backgroundColor: Colors.parent.surface,
+        borderRadius: Layout.radius.xl,
+        padding: Layout.spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.parent.border,
     },
-    summaryTitle: {
+    statIconCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Layout.spacing.md,
+    },
+    statValue: {
+        ...Typography.parent.title,
+        fontSize: 22,
+        marginBottom: 2,
+    },
+    statLabel: {
+        ...Typography.parent.caption,
+        color: Colors.parent.textSecondary,
+    },
+    sectionTitle: {
         ...Typography.parent.subtitle,
         color: Colors.parent.textPrimary,
         marginBottom: Layout.spacing.md,
     },
-    summaryRow: {
+    actionsContainer: {
+        gap: Layout.spacing.md,
+        marginBottom: Layout.spacing.xxl,
+    },
+    actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 14,
+        borderRadius: Layout.radius.lg,
     },
-    summaryItem: {
-        flex: 1,
+    primaryAction: {
+        backgroundColor: Colors.parent.primary,
+    },
+    primaryActionText: {
+        ...Typography.parent.button,
+        color: Colors.shared.white,
+    },
+    secondaryAction: {
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 14,
+        borderRadius: Layout.radius.lg,
+        backgroundColor: Colors.parent.surface,
+        borderWidth: 1,
+        borderColor: Colors.parent.border,
     },
-    summaryEmoji: { fontSize: 24, marginBottom: 4 },
-    summaryItemLabel: {
+    secondaryActionText: {
+        ...Typography.parent.button,
+        color: Colors.parent.primary,
+    },
+    recentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+    },
+    seeAll: {
+        ...Typography.parent.caption,
+        color: Colors.parent.primary,
+        fontWeight: '600',
+    },
+    activityList: {
+        gap: Layout.spacing.md,
+    },
+    activityItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.parent.surface,
+        padding: 12,
+        borderRadius: Layout.radius.lg,
+        borderWidth: 1,
+        borderColor: Colors.parent.border,
+    },
+    activityIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 8,
+        backgroundColor: Colors.parent.inputBg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    activityInfo: {
+        flex: 1,
+    },
+    activityTitle: {
+        ...Typography.parent.body,
+        fontWeight: '600',
+        color: Colors.parent.textPrimary,
+    },
+    activitySubtitle: {
         ...Typography.parent.caption,
         color: Colors.parent.textSecondary,
     },
-    summaryItemValue: {
-        ...Typography.parent.label,
-        color: Colors.parent.textPrimary,
-        marginTop: 2,
+    activeTag: {
+        backgroundColor: '#E8E0FF',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
     },
-    summaryDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: Colors.parent.border,
+    activeTagText: {
+        ...Typography.parent.caption,
+        fontSize: 11,
+        color: Colors.parent.primary,
+        fontWeight: '700',
+    },
+    activityValue: {
+        ...Typography.parent.body,
+        color: Colors.parent.textSecondary,
     },
 });

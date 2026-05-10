@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Change Parent PIN</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#c9a74d",
+                    "primary-fixed": "#e9ddff",
+                    "on-tertiary-fixed": "#241a00",
+                    "primary": "#4f378a",
+                    "on-tertiary-container": "#503d00",
+                    "error-container": "#ffdad6",
+                    "on-primary-container": "#e0d2ff",
+                    "background": "#fdf7ff",
+                    "secondary": "#63597c",
+                    "error": "#ba1a1a",
+                    "on-primary": "#ffffff",
+                    "surface-bright": "#fdf7ff",
+                    "on-surface-variant": "#494551",
+                    "primary-fixed-dim": "#cfbcff",
+                    "on-error": "#ffffff",
+                    "inverse-surface": "#322f35",
+                    "on-secondary-fixed-variant": "#4b4263",
+                    "surface-variant": "#e6e0e9",
+                    "on-error-container": "#93000a",
+                    "on-background": "#1d1b20",
+                    "tertiary": "#765b00",
+                    "inverse-primary": "#cfbcff",
+                    "surface-container-low": "#f8f2fa",
+                    "on-secondary": "#ffffff",
+                    "inverse-on-surface": "#f5eff7",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-highest": "#e6e0e9",
+                    "secondary-fixed-dim": "#cdc0e9",
+                    "on-surface": "#1d1b20",
+                    "surface-tint": "#6750a4",
+                    "tertiary-fixed-dim": "#e7c365",
+                    "outline": "#7a7582",
+                    "surface-container-high": "#ece6ee",
+                    "primary-container": "#6750a4",
+                    "on-primary-fixed-variant": "#4f378a",
+                    "tertiary-fixed": "#ffdf93",
+                    "on-secondary-fixed": "#1f1635",
+                    "on-primary-fixed": "#22005d",
+                    "surface": "#fdf7ff",
+                    "surface-container": "#f2ecf4",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-container": "#645a7d",
+                    "outline-variant": "#cbc4d2",
+                    "secondary-container": "#e1d4fd",
+                    "surface-dim": "#ded8e0",
+                    "secondary-fixed": "#e9ddff",
+                    "on-tertiary-fixed-variant": "#594400"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "parent-padding-v": "16px",
+                    "parent-padding-h": "20px",
+                    "child-padding-v": "24px",
+                    "child-gap": "20px",
+                    "child-padding-h": "24px",
+                    "parent-gap": "12px"
+            },
+            "fontFamily": {},
+            "fontSize": {
+                    "parent-title": [
+                            "22px",
+                            {
+                                    "lineHeight": "1.3",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "child-subtitle": [
+                            "20px",
+                            {
+                                    "lineHeight": "1.4",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "parent-subtitle": [
+                            "18px",
+                            {
+                                    "lineHeight": "1.4",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "child-hero": [
+                            "32px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "child-body": [
+                            "18px",
+                            {
+                                    "lineHeight": "1.6",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "parent-caption": [
+                            "13px",
+                            {
+                                    "lineHeight": "1.4",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "parent-body": [
+                            "15px",
+                            {
+                                    "lineHeight": "1.5",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "child-title": [
+                            "24px",
+                            {
+                                    "lineHeight": "1.3",
+                                    "fontWeight": "700"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<!-- TopAppBar -->
+<header class="bg-surface border-b border-outline-variant flex justify-between items-center w-full px-parent-padding-h py-parent-padding-v docked full-width top-0 z-50">
+<div class="flex items-center gap-4">
+<button class="text-primary hover:bg-surface-container-high active:opacity-80 transition-colors rounded-full p-2 flex items-center justify-center">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-parent-title text-parent-title text-on-surface">Security Settings</h1>
+</div>
+<div class="flex items-center">
+<button class="text-on-surface-variant hover:bg-surface-container-high active:opacity-80 transition-colors rounded-full p-2 flex items-center justify-center">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas (Transactional intent -> no side/bottom nav) -->
+<main class="flex-1 flex flex-col items-center justify-center p-parent-padding-h md:py-16">
+<div class="w-full max-w-md bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-8 flex flex-col gap-8">
+<div class="text-center flex flex-col gap-2">
+<h2 class="font-parent-subtitle text-parent-subtitle text-on-surface">Change Parent PIN</h2>
+<p class="font-parent-body text-parent-body text-on-surface-variant">Enter your current PIN to authenticate, then set a new one.</p>
+</div>
+<!-- PIN Input Fields (Visual only for UI design) -->
+<div class="flex flex-col gap-6">
+<!-- Current PIN -->
+<div class="flex flex-col gap-2">
+<label class="font-parent-caption text-parent-caption text-on-surface-variant">Current PIN</label>
+<div class="flex gap-4 justify-center">
+<div class="w-12 h-14 border border-outline-variant rounded-lg flex items-center justify-center text-primary font-parent-title bg-surface-container-low">
+                            •
+                        </div>
+<div class="w-12 h-14 border border-outline-variant rounded-lg flex items-center justify-center text-primary font-parent-title bg-surface-container-low">
+                            •
+                        </div>
+<div class="w-12 h-14 border border-outline-variant rounded-lg flex items-center justify-center text-primary font-parent-title bg-surface-container-low">
+                            •
+                        </div>
+<div class="w-12 h-14 border border-primary ring-1 ring-primary rounded-lg flex items-center justify-center text-primary font-parent-title bg-surface-container-lowest">
+<span class="animate-pulse opacity-50">|</span>
+</div>
+</div>
+</div>
+<!-- New PIN (Inactive State) -->
+<div class="flex flex-col gap-2 opacity-50 pointer-events-none">
+<label class="font-parent-caption text-parent-caption text-on-surface-variant">New PIN</label>
+<div class="flex gap-4 justify-center">
+<div class="w-12 h-14 border border-outline-variant rounded-lg bg-surface-container-lowest"></div>
+<div class="w-12 h-14 border border-outline-variant rounded-lg bg-surface-container-lowest"></div>
+<div class="w-12 h-14 border border-outline-variant rounded-lg bg-surface-container-lowest"></div>
+<div class="w-12 h-14 border border-outline-variant rounded-lg bg-surface-container-lowest"></div>
+</div>
+</div>
+<!-- Confirm New PIN (Inactive State) -->
+<div class="flex flex-col gap-2 opacity-50 pointer-events-none">
+<label class="font-parent-caption text-parent-caption text-on-surface-variant">Confirm New PIN</label>
+<div class="flex gap-4 justify-center">
+<div class="w-12 h-14 border border-outline-variant rounded-lg bg-surface-container-lowest"></div>
+<div class="w-12 h-14 border border-outline-variant rounded-lg bg-surface-container-lowest"></div>
+<div class="w-12 h-14 border border-outline-variant rounded-lg bg-surface-container-lowest"></div>
+<div class="w-12 h-14 border border-outline-variant rounded-lg bg-surface-container-lowest"></div>
+</div>
+</div>
+</div>
+<!-- Numeric Keypad (Parent Mode: Minimalist) -->
+<div class="grid grid-cols-3 gap-4 max-w-[280px] mx-auto mt-4">
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">1</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">2</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">3</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">4</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">5</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">6</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">7</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">8</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant">9</button>
+<button class="h-14 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors col-start-1">
+<span class="material-symbols-outlined">backspace</span>
+</button>
+<button class="h-14 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-parent-title text-parent-title transition-colors border border-outline-variant col-start-2">0</button>
+<button class="h-14 rounded-lg flex items-center justify-center text-primary font-parent-body font-bold hover:bg-primary-container hover:text-on-primary-container transition-colors col-start-3">
+                    Next
+                </button>
+</div>
+</div>
+</main>
+</body></html>

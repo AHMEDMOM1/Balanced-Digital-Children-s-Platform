@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sticker World</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#241a00",
+                        "inverse-surface": "#322f35",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#22005d",
+                        "inverse-on-surface": "#f5eff7",
+                        "secondary-fixed-dim": "#cdc0e9",
+                        "surface-container-highest": "#e6e0e9",
+                        "outline-variant": "#cbc4d2",
+                        "on-surface-variant": "#494551",
+                        "on-secondary": "#ffffff",
+                        "primary": "#4f378a",
+                        "on-primary-fixed-variant": "#4f378a",
+                        "secondary-fixed": "#e9ddff",
+                        "primary-fixed-dim": "#cfbcff",
+                        "on-surface": "#1d1b20",
+                        "tertiary-fixed": "#ffdf93",
+                        "on-tertiary-container": "#503d00",
+                        "on-secondary-fixed": "#1f1635",
+                        "on-background": "#1d1b20",
+                        "surface-container-low": "#f8f2fa",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#765b00",
+                        "surface-variant": "#e6e0e9",
+                        "surface-bright": "#fdf7ff",
+                        "surface-tint": "#6750a4",
+                        "surface": "#fdf7ff",
+                        "on-secondary-fixed-variant": "#4b4263",
+                        "surface-container": "#f2ecf4",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#ece6ee",
+                        "secondary": "#63597c",
+                        "primary-fixed": "#e9ddff",
+                        "outline": "#7a7582",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#e0d2ff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#fdf7ff",
+                        "tertiary-container": "#c9a74d",
+                        "surface-dim": "#ded8e0",
+                        "inverse-primary": "#cfbcff",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#645a7d",
+                        "on-tertiary-fixed-variant": "#594400",
+                        "tertiary-fixed-dim": "#e7c365",
+                        "secondary-container": "#e1d4fd",
+                        "primary-container": "#6750a4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1.5rem",
+                        "3xl": "2rem"
+                    },
+                    "spacing": {
+                        "child-padding-v": "24px",
+                        "parent-gap": "12px",
+                        "child-gap": "20px",
+                        "child-padding-h": "24px",
+                        "parent-padding-v": "16px",
+                        "parent-padding-h": "20px"
+                    },
+                    "fontFamily": {},
+                    "fontSize": {
+                        "parent-body": [
+                            "15px",
+                            {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                            }
+                        ],
+                        "parent-subtitle": [
+                            "18px",
+                            {
+                                "lineHeight": "1.4",
+                                "fontWeight": "600"
+                            }
+                        ],
+                        "parent-title": [
+                            "22px",
+                            {
+                                "lineHeight": "1.3",
+                                "fontWeight": "700"
+                            }
+                        ],
+                        "child-subtitle": [
+                            "20px",
+                            {
+                                "lineHeight": "1.4",
+                                "fontWeight": "600"
+                            }
+                        ],
+                        "child-title": [
+                            "24px",
+                            {
+                                "lineHeight": "1.3",
+                                "fontWeight": "700"
+                            }
+                        ],
+                        "child-hero": [
+                            "32px",
+                            {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                            }
+                        ],
+                        "parent-caption": [
+                            "13px",
+                            {
+                                "lineHeight": "1.4",
+                                "fontWeight": "400"
+                            }
+                        ],
+                        "child-body": [
+                            "18px",
+                            {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .tactile-shadow {
+            box-shadow: 0 10px 25px -5px rgba(79, 55, 138, 0.15), 0 8px 10px -6px rgba(79, 55, 138, 0.1);
+        }
+        .tactile-button {
+            border-bottom: 4px solid #3b2866; /* darker shade of primary */
+            transition: all 0.1s ease-in-out;
+        }
+        .tactile-button:active {
+            border-bottom-width: 0px;
+            transform: translateY(4px);
+        }
+        .bg-soft-glow {
+            background: radial-gradient(circle at center, rgba(103, 80, 164, 0.1) 0%, transparent 70%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background h-screen flex flex-col overflow-hidden font-sans selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top AppBar (from JSON) -->
+<header class="bg-primary dark:bg-primary-container shadow-xl shadow-primary/20 docked full-width top-0 rounded-b-xl fixed top-0 w-full z-50 flex justify-between items-center px-parent-padding-h h-16">
+<div class="flex items-center gap-3">
+<button aria-label="Go back" class="flex items-center justify-center text-on-primary dark:text-on-primary-container hover:opacity-80 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">timer</span>
+</button>
+<h1 class="font-parent-title text-parent-title text-on-primary dark:text-on-primary-container font-bold">SafePlay Timer</h1>
+</div>
+<button aria-label="Lock settings" class="flex items-center justify-center text-on-primary dark:text-on-primary-container hover:opacity-80 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lock</span>
+</button>
+</header>
+<!-- Main Content Area -->
+<main class="flex-grow flex flex-col pt-16 pb-20 relative bg-soft-glow">
+<!-- Header Actions -->
+<div class="absolute top-20 left-0 right-0 px-child-padding-h flex justify-between z-10 pointer-events-none">
+<button class="pointer-events-auto bg-surface-container-highest text-on-surface hover:bg-surface-variant transition-colors rounded-full px-6 py-3 font-child-subtitle text-child-subtitle tactile-shadow tactile-button flex items-center gap-2 border-2 border-outline-variant">
+<span class="material-symbols-outlined text-[24px]">delete</span>
+                Clear
+            </button>
+<button class="pointer-events-auto bg-primary text-on-primary hover:bg-primary/90 transition-colors rounded-full px-8 py-3 font-child-title text-child-title tactile-shadow tactile-button flex items-center gap-2 border-2 border-primary">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">done</span>
+                Save
+            </button>
+</div>
+<!-- The Canvas / Scene (Top 2/3) -->
+<div class="flex-grow p-child-padding-h pb-0 flex flex-col relative z-0">
+<div class="w-full h-full rounded-3xl overflow-hidden tactile-shadow relative bg-surface-variant border-4 border-surface-container-high" data-alt="A lush, magical cartoon forest clearing illuminated by soft, golden hour sunlight. The style is 3D soft-skeuomorphic, resembling a high-quality premium digital toy with ultra-rounded, squishy-looking trees and friendly bushes. The color palette emphasizes vibrant emerald greens, warm yellow highlights, and subtle deep purple shadows matching the app's primary theme. The scene is mostly empty, serving as a clean, beautiful backdrop for placing colorful digital stickers." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDzrLF840fgnyLmsfeWf00YQ5sXD_o4GMY90Se-SBmeXZWWz0meizKXd9ZhjfaAQIzWTYhz8TyZ90hbVRBrG12jYFIkuVgURWOqZ0EEH1jcgv8Pg8BIOFyTKI8_GjzoCsi1N3Spig_wITLUjjBe9cU0uh5rXptVbXQsrnXqLaeU92iT3w5r4bozLvRMBoGFek_G_Y5SLzDCgd4McvPKAn4aC4b7mMoy2BW5-bM60Uf9llRhRopv2So7YBeYuR5my-S8Bo9v6gDQyJk'); background-size: cover; background-position: center;">
+<!-- Example Placed Stickers -->
+<div class="absolute top-1/4 left-1/3 w-32 h-32 transform -rotate-12 hover:scale-105 transition-transform cursor-pointer drop-shadow-xl" data-alt="A bright, colorful cartoon sticker of a friendly, smiling lion cub with a fluffy mane. The sticker has a thick white die-cut border typical of premium physical stickers. The style is soft, squishy, and high-contrast, designed for young children.">
+<img alt="Lion sticker" class="w-full h-full object-cover rounded-full border-4 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADnYShskseweNCkLSvYgBrUteSyHC6KhzAt6ZT1Ifqb48ST-m8Phf-Iwr-qfqNUebkqBvsJdVKLmo9C1aI7nmy5VRv19mYY2Q5TktSdg_AaplBB0RogJj1FsOAFtz9v7xqyiKv20r0NVHDIF2tZTy_Bdyk8tfqNBuOGS_zkHTxTrkupbp3l9b7ULfSLi6-Xk5sFtsumspj8SRnp8DEvzJwzbDDlKQssJCPwFjoqNJZy6npGEaH3SsHC8M9eOF5uugV5LYtoxsNwjw"/>
+</div>
+<div class="absolute bottom-1/4 right-1/4 w-24 h-24 transform rotate-12 hover:scale-105 transition-transform cursor-pointer drop-shadow-xl" data-alt="A shiny, vibrant cartoon sticker of a sparkling yellow star with a cute, kawaii face. The sticker features a thick white border and a glossy finish, resembling a tactile, puffy sticker. It sits beautifully against the magical forest backdrop, catching imaginary light.">
+<img alt="Star sticker" class="w-full h-full object-cover rounded-full border-4 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6015pcsZ1ufSMq2I20hug-mgZ5T6yOeoHzwxDTAlYX0PTXK9FOn2JIyNKeByLA3JjUIOXu8TWVHXyC9-W7Pm3p75cWrZWip_YgQrUxVkaB9cjY_cxbEDyGqTiQnB4kFOs_Uq7c1iidWSp5KYIHDbf77eArTfT5jk6gfCi-ypIdI_LqmtPa1i1RrfT4Xuvzb-_R1HzzUEPuBntH38Bt4jhR8S9Jewnt-prgnf5KLYowtC_ZVq8-jugmP9BFtlX82TCzzkPZYZqCH0"/>
+</div>
+</div>
+</div>
+<!-- The Sticker Tray (Bottom 1/3) -->
+<div class="h-1/3 min-h-[220px] bg-surface-container rounded-t-3xl mt-4 px-child-padding-h py-child-padding-v tactile-shadow border-t-4 border-surface-container-high flex flex-col relative z-20">
+<div class="w-16 h-2 bg-outline-variant rounded-full mx-auto mb-4 opacity-50"></div>
+<h2 class="font-child-title text-child-title text-primary text-center mb-4">Pick a Sticker!</h2>
+<!-- Horizontal scrollable tray -->
+<div class="flex-grow flex gap-child-gap overflow-x-auto pb-4 snap-x snap-mandatory hide-scrollbar">
+<!-- Sticker Item -->
+<button class="snap-center flex-shrink-0 w-32 h-32 bg-surface rounded-2xl tactile-shadow tactile-button border-2 border-surface-container-high flex items-center justify-center p-2 hover:bg-surface-bright group">
+<div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white group-hover:scale-110 transition-transform drop-shadow-md">
+<img alt="Dog sticker" class="w-full h-full object-cover" data-alt="A cute, soft-textured cartoon sticker of a happy golden retriever puppy. The image is framed by a thick white die-cut border. The style is playful, high-contrast, and designed to look squishy and tactile, matching the premium toy aesthetic of the app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQivPp60vcOWyXQ1swjR_IkG-taBpqCqlAqtSSc-lEOGI5RbkmO_MqZeTPMDbjFdGc-y0RYvNnA72GI9V_V9JW4wbqAJzMtuNZ2NTiE_W9dJaM0zxLWrOux0g03gMkEmkOqrQJz9aWr7aodPsaPm2opB_iBn_Jpm3SH2TMQh1pZC2DtbsPrHqz10BFbk6P9slBCkxg5OU0FaYJcajUOtyIZzr2VQ80saOfbTPEB2zoHLLnJ7ljPpwQncxBGMqVrNakLRYvIamIpHo"/>
+</div>
+</button>
+<!-- Sticker Item -->
+<button class="snap-center flex-shrink-0 w-32 h-32 bg-surface rounded-2xl tactile-shadow tactile-button border-2 border-surface-container-high flex items-center justify-center p-2 hover:bg-surface-bright group">
+<div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white group-hover:scale-110 transition-transform drop-shadow-md">
+<img alt="Cat sticker" class="w-full h-full object-cover" data-alt="An adorable, colorful cartoon sticker of a sleepy orange tabby cat. It has a glossy, puffy appearance with a thick white border, resembling a physical premium sticker designed for children." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxSBJUGVm4Mf7XOoa2xLbO9oLhDaMwS2ooSz_dliFOm5-bKVEaj_zyUL28QH4csUlbkYnOx0VF_qlmoz5_8hBnTeDg1xwWN4fYIq8pdFTBxsgFyTtVJdxb610FRRzu08YLAi2887XWSi5UPVVVE21Mrv5Wlkk2F5UQHel7pCs5hobQ9f4b61jSgvoDon-1_QzyXZ9Zieb8xM46lYgJT79f5JtK42D-xev0vzPKA2H3sLOOh0ITXEweXXMpfcwUmPnvaWVYAAyQnSw"/>
+</div>
+</button>
+<!-- Sticker Item -->
+<button class="snap-center flex-shrink-0 w-32 h-32 bg-surface rounded-2xl tactile-shadow tactile-button border-2 border-surface-container-high flex items-center justify-center p-2 hover:bg-surface-bright group">
+<div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white group-hover:scale-110 transition-transform drop-shadow-md">
+<img alt="Bird sticker" class="w-full h-full object-cover" data-alt="A vibrant cartoon sticker of a bright blue bird mid-flight. The sticker has a soft-skeuomorphic style, looking touchable and squishy with a thick white die-cut border. It contrasts beautifully with the soft purple theme of the tray." src="https://lh3.googleusercontent.com/aida-public/AB6AXuASYl4SpiXbabpvORywfUf-r2N3maZW9qSDKQqBMNaQWU0Xsx9YD9TVXtmy9s4rfdK8WB7KtlBZCk422nNA8pcTtWUiveSVEofMZhrvIGNjqz3fGtF0b0LFKIMlLY4Dipihr8tuCbduDrKdsMh0wG1OHbol1t0YeBm4Bm5L-5iepoe6OWzaVXzBqdcJgAghJaI2P92SNZX3aOJzh3fCqikBoAG01kbCQYSSR52an9J-gJLkZxO9VqIiv8HeoLq8NFKo8D1iV4gwVm4"/>
+</div>
+</button>
+<!-- Sticker Item -->
+<button class="snap-center flex-shrink-0 w-32 h-32 bg-surface rounded-2xl tactile-shadow tactile-button border-2 border-surface-container-high flex items-center justify-center p-2 hover:bg-surface-bright group">
+<div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white group-hover:scale-110 transition-transform drop-shadow-md bg-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-[64px] text-tertiary" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+</button>
+<!-- Sticker Item (Empty Slot / More) -->
+<button class="snap-center flex-shrink-0 w-32 h-32 bg-surface-container-lowest rounded-2xl tactile-shadow tactile-button border-2 border-dashed border-outline-variant flex items-center justify-center p-2 hover:bg-surface-variant group text-outline">
+<span class="material-symbols-outlined text-[48px] group-hover:scale-110 transition-transform">add_circle</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Bottom NavBar (from JSON) - Suppressed as per instructions for focused interactive views, but included structurally if needed for global context, though rules say "Suppress if task-focused". Since this is a creative canvas with "Save/Clear", it's task focused. Therefore, we omit the bottom nav to prioritize the canvas, adhering to: "If the user is in a focused journey... hide the shell to prioritize the Canvas." -->
+<style>
+        /* Utility to hide scrollbar but keep functionality */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>
