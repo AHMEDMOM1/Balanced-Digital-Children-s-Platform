@@ -1,161 +1,436 @@
+/**
+ * Story Screen — SafePlay Timer Story Viewer
+ * Matches the Stitch child_mode_story_viewer design:
+ * - Large illustration card with purple background
+ * - 3D navigation buttons (back/forward)
+ * - Page dots progress indicator
+ * - Floating close and audio buttons
+ */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
-import Header from '../../../components/ui/Header';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../../../constants/Colors';
 import Typography from '../../../constants/Typography';
 import Layout from '../../../constants/Layout';
+import { useContentById } from '../../../services/api/hooks';
 
-const storiesData = {
-    '1': {
-        title: 'Kaplumbağa ve Tavşan',
-        pages: [
-            { text: 'Bir varmış, bir yokmuş. Ormanın birinde çok hızlı koşan bir tavşan yaşarmış.', emoji: '🐇' },
-            { text: 'Tavşan her zaman hızıyla övünürmüş. Kaplumbağa ise çok yavaş yürümüş.', emoji: '🐢' },
-            { text: 'Bir gün kaplumbağa tavşana yarış teklif etmiş. Tavşan gülmüş ve kabul etmiş.', emoji: '🏁' },
-            { text: 'Yarış başlamış. Tavşan çok hızlı koşup uzağa gitmiş ve uyumaya karar vermiş.', emoji: '😴' },
-            { text: 'Kaplumbağa hiç durmadan yavaş yavaş yürümeye devam etmiş.', emoji: '🚶' },
-            { text: 'Tavşan uyandığında kaplumbağa çoktan bitiş çizgisine varmış. Yavaş ama emin adımlarla giden kazanmış!', emoji: '🏆' },
-        ]
-    },
-    '2': {
-        title: 'Aya Yolculuk',
-        pages: [
-            { text: 'Ali gökyüzüne bakmayı çok severmiş.', emoji: '🔭' },
-            { text: 'Bir gece roket yapıp aya gitmeye karar vermiş.', emoji: '🚀' },
-            { text: 'Aya ulaştığında zıplamanın çok kolay olduğunu fark etmiş!', emoji: '🌕' }
-        ]
-    },
-    '3': {
-        title: 'Çiçek Bahçesi',
-        pages: [
-            { text: 'Ayşe bahçesinde birbirinden güzel çiçekler yetiştiriyormuş.', emoji: '🌻' },
-            { text: 'Her sabah onlara su veriyor ve onlarla konuşuyormuş.', emoji: '💧' },
-            { text: 'Bir gün bahçeye rengarenk kelebekler gelmiş!', emoji: '🦋' }
-        ]
-    }
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const storyTemplates: Record<string, { text: string; emoji: string }[]> = {
+    'default': [
+        { text: 'Once upon a time, in a land not so far away, there was a wonderful adventure waiting to begin.', emoji: '🌟' },
+        { text: 'Our hero looked around with wide eyes, ready to explore every corner of this magical world.', emoji: '🗺️' },
+        { text: 'A friendly creature appeared and smiled. "Follow me," it said, "I will show you something amazing!"', emoji: '🦊' },
+        { text: 'Together they discovered a secret place full of wonder and joy, where every dream could come true.', emoji: '✨' },
+        { text: 'And so, with a happy heart, our hero knew that the greatest adventures are the ones we share with friends.', emoji: '💫' },
+    ],
 };
+
+function getStoryPages(title: string): { text: string; emoji: string }[] {
+    const templates = storyTemplates['default'];
+    return templates.map((page, i) => ({
+        ...page,
+        emoji: [
+            '📖', '🌟', '🦋', '🌈', '💫', '🎉',
+        ][i % 6],
+    }));
+}
 
 export default function StoryScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const [pageIndex, setPageIndex] = useState(0);
+    const { data: content, isLoading, error } = useContentById(id as string);
 
-    const story = storiesData[id as keyof typeof storiesData] || storiesData['1'];
-    const isLastPage = pageIndex === story.pages.length - 1;
+    const storyTitle = content?.title || 'Story Time';
+    const pages = getStoryPages(storyTitle);
+    const currentPage = pages[pageIndex];
+    const isLastPage = pageIndex === pages.length - 1;
+    const isFirstPage = pageIndex === 0;
 
     const nextPage = () => {
-        if (!isLastPage) {
-            setPageIndex(p => p + 1);
-        } else {
-            router.back();
-        }
+        if (!isLastPage) setPageIndex(p => p + 1);
+        else router.back();
     };
 
     const prevPage = () => {
-        if (pageIndex > 0) {
-            setPageIndex(p => p - 1);
-        }
+        if (pageIndex > 0) setPageIndex(p => p - 1);
     };
 
     return (
         <SafeAreaView style={styles.safe}>
-            <Header
-                title={story.title}
-                subtitle={`${pageIndex + 1} / ${story.pages.length}`}
-                variant="child"
-                showBack
-                onBack={() => router.back()}
-            />
-            
-            <View style={styles.content}>
-                <Animated.View 
-                    key={pageIndex} 
-                    entering={FadeInRight.duration(500)} 
-                    exiting={FadeOutLeft.duration(500)}
-                    style={styles.pageContainer}
-                >
-                    <Text style={styles.emoji}>{story.pages[pageIndex].emoji}</Text>
-                    <Text style={styles.storyText}>{story.pages[pageIndex].text}</Text>
-                </Animated.View>
-                
-                <View style={styles.controls}>
-                    {pageIndex > 0 ? (
-                        <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={prevPage}>
-                            <Text style={styles.secondaryButtonText}>Geri</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <View style={styles.spacer} />
-                    )}
-                    
-                    <TouchableOpacity style={styles.button} onPress={nextPage}>
-                        <Text style={styles.buttonText}>{isLastPage ? 'Bitir' : 'İleri'}</Text>
+            {/* ── Loading State ── */}
+            {isLoading && (
+                <View style={styles.centerState}>
+                    <ActivityIndicator size="large" color={Colors.child.primary} />
+                </View>
+            )}
+
+            {/* ── Error State ── */}
+            {error && (
+                <View style={styles.centerState}>
+                    <Ionicons name="cloud-offline-outline" size={48} color={Colors.child.textSecondary} />
+                    <Text style={styles.stateText}>Could not load story</Text>
+                    <TouchableOpacity style={styles.retryBtn} onPress={() => router.back()}>
+                        <Text style={styles.retryBtnText}>Go Back</Text>
                     </TouchableOpacity>
                 </View>
+            )}
+
+            {/* ── Story Content ── */}
+            {!isLoading && !error && (
+                <>
+                    {/* ── Story Header (Floating) ── */}
+                    <View style={styles.header}>
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            style={styles.headerButton}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="close" size={28} color={Colors.child.primary} />
+                        </TouchableOpacity>
+
+                        <View style={styles.titlePill}>
+                            <Ionicons name="book" size={20} color={Colors.child.secondary} />
+                            <Text style={styles.titleText} numberOfLines={1}>{storyTitle}</Text>
+                        </View>
+
+                        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+                            <Ionicons name="volume-high" size={28} color={Colors.child.primary} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* ── Main Story Canvas ── */}
+                    <View style={styles.content}>
+                        <Animated.View
+                            key={pageIndex}
+                            entering={FadeInRight.duration(400)}
+                            exiting={FadeOutLeft.duration(300)}
+                            style={styles.bookCard}
+                        >
+                            {/* Illustration Area */}
+                            <View style={styles.illustrationArea}>
+                                <Text style={styles.illustrationEmoji}>{currentPage.emoji}</Text>
+
+                                {/* Page Badge */}
+                                <View style={styles.pageBadge}>
+                                    <Text style={styles.pageBadgeText}>
+                                        Page {pageIndex + 1} of {pages.length}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Text Area */}
+                            <View style={styles.textArea}>
+                                <Text style={styles.storyText}>{currentPage.text}</Text>
+                            </View>
+                        </Animated.View>
+
+                        {/* ── Navigation Controls ── */}
+                        <View style={styles.navControls}>
+                    {/* Previous Button */}
+                    <TouchableOpacity
+                        onPress={prevPage}
+                        disabled={isFirstPage}
+                        activeOpacity={0.7}
+                        style={[
+                            styles.prevButton,
+                            isFirstPage && styles.disabledButton,
+                        ]}
+                    >
+                        <Ionicons
+                            name="chevron-back"
+                            size={36}
+                            color={isFirstPage ? Colors.child.outlineVariant : Colors.child.outline}
+                        />
+                    </TouchableOpacity>
+
+                    {/* Progress Dots */}
+                    <View style={styles.dotsRow}>
+                        {pages.map((_, i) => (
+                            <View
+                                key={i}
+                                style={[
+                                    styles.dot,
+                                    i === pageIndex && styles.activeDot,
+                                ]}
+                            />
+                        ))}
+                    </View>
+
+                    {/* Next Button (Primary — Large & Purple) */}
+                    <TouchableOpacity
+                        onPress={nextPage}
+                        activeOpacity={0.8}
+                        style={styles.nextButton}
+                    >
+                        <Ionicons
+                            name={isLastPage ? "checkmark" : "chevron-forward"}
+                            size={40}
+                            color={Colors.child.onPrimary}
+                        />
+                    </TouchableOpacity>
+                </View>
+            </View>
+                </>
+            )}
+
+            {/* ── Decorative Background Blurs ── */}
+            <View style={styles.decorContainer} pointerEvents="none">
+                <View style={[styles.decorBlob, styles.decorBlob1]} />
+                <View style={[styles.decorBlob, styles.decorBlob2]} />
+                <View style={[styles.decorBlob, styles.decorBlob3]} />
             </View>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: Colors.child.background },
+    safe: {
+        flex: 1,
+        backgroundColor: Colors.child.background,
+    },
+
+    centerState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        padding: Layout.spacing.xxl,
+    },
+    stateText: {
+        ...Typography.child.body,
+        color: Colors.child.textSecondary,
+        textAlign: 'center',
+    },
+    retryBtn: {
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: Layout.radius.full,
+        backgroundColor: Colors.child.primary,
+    },
+    retryBtnText: {
+        ...Typography.child.subtitle,
+        color: Colors.child.onPrimary,
+    },
+
+    // ── Header ──
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: Layout.screen.paddingHorizontal,
+        paddingTop: Layout.spacing.md,
+        paddingBottom: Layout.spacing.sm,
+        zIndex: 10,
+    },
+    headerButton: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: Colors.child.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        // Shadow matching Stitch child-card shadow
+        shadowColor: Colors.child.primary,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
+        elevation: 5,
+    },
+    titlePill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: Colors.child.surface,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: Layout.radius.full,
+        maxWidth: SCREEN_WIDTH * 0.5,
+        // Shadow
+        shadowColor: Colors.child.primary,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
+        elevation: 5,
+    },
+    titleText: {
+        ...Typography.child.subtitle,
+        fontSize: 16,
+        color: Colors.child.secondary,
+    },
+
+    // ── Content ──
     content: {
         flex: 1,
-        padding: Layout.screen.paddingHorizontal,
+        paddingHorizontal: Layout.screen.paddingHorizontal,
+        paddingTop: Layout.spacing.xl,
         justifyContent: 'space-between',
-        paddingBottom: Layout.spacing.xxl,
+        zIndex: 10,
     },
-    pageContainer: {
+
+    // ── Book Card ──
+    bookCard: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: Colors.child.surface,
-        borderRadius: Layout.radius.xl,
-        padding: Layout.spacing.xl,
-        elevation: 2,
+        backgroundColor: '#E8E0FF',
+        borderRadius: 40,
+        overflow: 'hidden',
+        borderWidth: 4,
+        borderColor: 'rgba(255,255,255,0.5)',
+        // Shadow
         shadowColor: Colors.child.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        marginVertical: Layout.spacing.xl,
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.15,
+        shadowRadius: 40,
+        elevation: 8,
     },
-    emoji: {
+    illustrationArea: {
+        flex: 1,
+        backgroundColor: '#F8F2FA',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        minHeight: 220,
+    },
+    illustrationEmoji: {
         fontSize: 100,
-        marginBottom: Layout.spacing.xl,
+    },
+    pageBadge: {
+        position: 'absolute',
+        bottom: 16,
+        right: 16,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: Layout.radius.full,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.5)',
+    },
+    pageBadgeText: {
+        ...Typography.child.subtitle,
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.child.primary,
+    },
+    textArea: {
+        paddingVertical: 24,
+        paddingHorizontal: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#E8E0FF',
     },
     storyText: {
         ...Typography.child.title,
+        fontSize: 22,
         color: Colors.child.textPrimary,
         textAlign: 'center',
-        lineHeight: 40,
+        lineHeight: 34,
     },
-    controls: {
+
+    // ── Navigation ──
+    navControls: {
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Layout.spacing.md,
+        paddingVertical: Layout.spacing.xl,
+        paddingHorizontal: Layout.spacing.sm,
     },
-    button: {
-        backgroundColor: Colors.child.primary,
-        paddingVertical: Layout.spacing.md,
-        paddingHorizontal: Layout.spacing.xl,
-        borderRadius: Layout.radius.full,
-        minWidth: 120,
+    prevButton: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: Colors.child.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 3,
+        borderColor: Colors.child.outlineVariant,
+        // 3D effect
+        shadowColor: Colors.child.outlineVariant,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 1,
+        shadowRadius: 0,
+        elevation: 6,
+    },
+    disabledButton: {
+        opacity: 0.4,
+    },
+    dotsRow: {
+        flexDirection: 'row',
+        gap: 10,
         alignItems: 'center',
     },
-    secondaryButton: {
-        backgroundColor: Colors.child.cardStory,
+    dot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: 'rgba(203, 196, 210, 0.5)',
     },
-    buttonText: {
-        ...Typography.child.button,
-        color: Colors.child.surface,
+    activeDot: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: Colors.child.primary,
+        shadowColor: Colors.child.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    secondaryButtonText: {
-        ...Typography.child.button,
-        color: Colors.child.primary,
+    nextButton: {
+        width: 80,
+        height: 80,
+        borderRadius: 28,
+        backgroundColor: Colors.child.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 4,
+        borderColor: Colors.child.primaryContainer,
+        // 3D effect
+        shadowColor: Colors.child.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 1,
+        shadowRadius: 0,
+        elevation: 8,
     },
-    spacer: {
+
+    // ── Decorative Blobs ──
+    decorContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 0,
+    },
+    decorBlob: {
+        position: 'absolute',
+        borderRadius: 9999,
+        opacity: 0.15,
+    },
+    decorBlob1: {
+        top: '10%',
+        left: '5%',
         width: 120,
-    }
+        height: 120,
+        backgroundColor: Colors.child.secondaryContainer,
+    },
+    decorBlob2: {
+        bottom: '20%',
+        right: '10%',
+        width: 180,
+        height: 180,
+        backgroundColor: Colors.child.primaryContainer,
+        opacity: 0.1,
+    },
+    decorBlob3: {
+        top: '40%',
+        right: '5%',
+        width: 90,
+        height: 90,
+        backgroundColor: Colors.child.tertiaryContainer,
+        opacity: 0.2,
+    },
 });

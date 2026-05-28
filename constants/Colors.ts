@@ -1,60 +1,101 @@
 /**
- * Design System — Color Palette
- * Child Mode: Warm, playful pastels
- * Parent Mode: Professional, calm tones
+ * Design System — SafePlay Timer Color Palette
+ * Based on "Dual-Horizon" design: deep purple for child, professional purple for parent.
  */
 
 const Colors = {
     // ── Child Mode ─────────────────────────────
     child: {
-        primary: '#7C5CFC',       // Soft purple
-        secondary: '#FF6B6B',     // Coral
-        accent: '#4ECDC4',        // Sky teal
-        highlight: '#FFE66D',     // Warm yellow
-        background: '#F8F6FF',    // Light lavender
-        surface: '#FFFFFF',
-        textPrimary: '#2D2057',
-        textSecondary: '#6B5B95',
-        cardStory: '#E8E0FF',
-        cardGame: '#FFE0E0',
-        cardCreative: '#D4F5F0',
-        cardVideo: '#FFE8D6',       // Warm peach
+        primary: '#4f378a',           // Deep purple
+        primaryContainer: '#6750a4',  // Medium purple
+        onPrimary: '#ffffff',
+        onPrimaryContainer: '#e0d2ff',
+        secondary: '#63597c',
+        secondaryContainer: '#e1d4fd',
+        tertiary: '#765b00',          // Gold/amber accent
+        tertiaryContainer: '#c9a74d', // Gold container
+        tertiaryFixedDim: '#e7c365',
+        background: '#fdf7ff',        // Light lavender
+        surface: '#ffffff',
+        surfaceContainer: '#f2ecf4',
+        surfaceContainerHigh: '#ece6ee',
+        surfaceContainerLowest: '#ffffff',
+        surfaceVariant: '#e6e0e9',
+        textPrimary: '#1d1b20',
+        textSecondary: '#494551',
+        outline: '#7a7582',
+        outlineVariant: '#cbc4d2',
+        accent: '#cfbcff',            // Light purple accent
+        primaryFixed: '#e9ddff',
+        primaryFixedDim: '#cfbcff',
+        // Activity card colors
+        cardStory: '#e9ddff',         // Light purple (E8E0FF in Stitch)
+        cardGame: '#ffe0e0',          // Soft pink
+        cardCreative: '#c9a74d',      // Gold
+        cardVideo: '#e6e0e9',         // Soft gray
+        cardVideoBackground: '#FFE8D6', // Warm peach for video screen
+        // Status
+        starFilled: '#c9a74d',
+        starEmpty: '#cbc4d2',
+        error: '#ba1a1a',
+        errorContainer: '#ffdad6',
     },
 
     // ── Parent Mode ────────────────────────────
     parent: {
-        primary: '#00B4D8',       // Teal accent
-        secondary: '#0F1B2D',     // Deep navy
-        accent: '#48CAE4',        // Light teal
-        background: '#F0F4F8',    // Soft gray
-        surface: '#FFFFFF',
-        surfaceElevated: '#FAFBFC',
-        textPrimary: '#0F1B2D',
-        textSecondary: '#5A6B7E',
-        border: '#E2E8F0',
-        inputBg: '#F7F9FC',
+        primary: '#4f378a',           // Deep purple (same brand)
+        primaryContainer: '#6750a4',
+        onPrimary: '#ffffff',
+        accent: '#cfbcff',            // Light purple accent
+        background: '#fdf7ff',
+        surface: '#ffffff',
+        surfaceContainer: '#f2ecf4',
+        surfaceContainerHigh: '#ece6ee',
+        textPrimary: '#1d1b20',
+        textSecondary: '#494551',
+        border: '#cbc4d2',
+        outline: '#7a7582',
+        inputBg: '#f8f2fa',
     },
 
     // ── Shared / Status ────────────────────────
     shared: {
         success: '#10B981',
         warning: '#F59E0B',
-        error: '#EF4444',
-        info: '#3B82F6',
-        white: '#FFFFFF',
+        error: '#ba1a1a',
+        errorContainer: '#ffdad6',
+        info: '#6750a4',
+        white: '#ffffff',
         black: '#000000',
-        overlay: 'rgba(15, 27, 45, 0.6)',
-        divider: '#E5E7EB',
+        overlay: 'rgba(29, 27, 32, 0.6)',
+        divider: '#cbc4d2',
     },
 
     // ── PIN Lock ───────────────────────────────
     pin: {
-        background: '#0F1B2D',
-        dot: '#00B4D8',
-        dotEmpty: '#334155',
-        keypad: '#1E293B',
-        keypadText: '#FFFFFF',
-        keypadPressed: '#00B4D8',
+        background: '#fdf7ff',
+        dot: '#4f378a',
+        dotEmpty: '#cbc4d2',
+        keypad: '#ffffff',
+        keypadText: '#1d1b20',
+        keypadPressed: '#e9ddff',
+        cardBg: '#ffffff',
+        cardBorder: '#cbc4d2',
+    },
+
+    // ── Header Bar ─────────────────────────────
+    header: {
+        background: '#4f378a',
+        text: '#ffffff',
+        icon: '#ffffff',
+    },
+
+    // ── Bottom Tab Bar ─────────────────────────
+    tab: {
+        active: '#4f378a',
+        inactive: '#7a7582',
+        background: '#ffffff',
+        border: '#cbc4d2',
     },
 };
 

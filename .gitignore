@@ -31,6 +31,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -39,3 +40,19 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# editor
+.vscode/
+.opencode/
+
+# logs
+*.log
+
+# AI & Planning Agents (Hidden from repo)
+.agents/
+.specify/
+.gemini/
+specs/
+AGENTS.md
+GEMINI.md
+Plan.md

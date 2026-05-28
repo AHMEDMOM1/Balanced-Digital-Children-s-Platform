@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Educational Videos</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#765b00",
+                        "on-primary-fixed-variant": "#4f378a",
+                        "inverse-on-surface": "#f5eff7",
+                        "on-secondary-fixed": "#1f1635",
+                        "surface-bright": "#fdf7ff",
+                        "background": "#fdf7ff",
+                        "secondary-fixed": "#e9ddff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#cdc0e9",
+                        "primary-fixed": "#e9ddff",
+                        "on-surface-variant": "#494551",
+                        "secondary": "#63597c",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#e6e0e9",
+                        "on-surface": "#1d1b20",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e6e0e9",
+                        "on-primary-container": "#e0d2ff",
+                        "on-secondary": "#ffffff",
+                        "inverse-surface": "#322f35",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#ece6ee",
+                        "secondary-container": "#e1d4fd",
+                        "surface-container-low": "#f8f2fa",
+                        "surface": "#fdf7ff",
+                        "primary-fixed-dim": "#cfbcff",
+                        "on-tertiary-fixed-variant": "#594400",
+                        "tertiary-fixed-dim": "#e7c365",
+                        "on-secondary-fixed-variant": "#4b4263",
+                        "outline": "#7a7582",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#645a7d",
+                        "on-tertiary-container": "#503d00",
+                        "primary-container": "#6750a4",
+                        "inverse-primary": "#cfbcff",
+                        "tertiary-fixed": "#ffdf93",
+                        "surface-container": "#f2ecf4",
+                        "on-primary-fixed": "#22005d",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-tint": "#6750a4",
+                        "primary": "#4f378a",
+                        "surface-dim": "#ded8e0",
+                        "on-tertiary-fixed": "#241a00",
+                        "tertiary-container": "#c9a74d",
+                        "outline-variant": "#cbc4d2",
+                        "on-background": "#1d1b20",
+                        "on-primary": "#ffffff",
+                        "card-video": "#FFE8D6" // Adding specific requested color as custom
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "3xl": "1.5rem"
+                    },
+                    "spacing": {
+                        "parent-padding-v": "16px",
+                        "child-padding-v": "24px",
+                        "parent-padding-h": "20px",
+                        "parent-gap": "12px",
+                        "child-padding-h": "24px",
+                        "child-gap": "20px"
+                    },
+                    "fontFamily": {},
+                    "fontSize": {
+                        "parent-caption": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                        "child-subtitle": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "parent-subtitle": ["18px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "parent-body": ["15px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "child-title": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "child-body": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "parent-title": ["22px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                        "child-hero": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #FFE8D6; /* Safe child mode background */
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-24 md:pb-0 pt-16 md:pt-20 max-w-4xl mx-auto flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-parent-padding-h h-16 bg-primary dark:bg-primary-container shadow-xl shadow-primary/20 rounded-b-xl max-w-4xl mx-auto left-0 right-0">
+<div class="flex items-center gap-2 text-on-primary">
+<span class="material-symbols-outlined text-3xl active:scale-95 transition-transform cursor-pointer" style="font-variation-settings: 'FILL' 1;">timer</span>
+</div>
+<h1 class="font-parent-title text-parent-title font-bold text-on-primary">SafePlay Timer</h1>
+<div class="flex items-center gap-2 text-on-primary">
+<span class="material-symbols-outlined text-3xl active:scale-95 transition-transform cursor-pointer" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow p-child-padding-h flex flex-col gap-child-gap">
+<!-- Large Video Player -->
+<section class="w-full flex flex-col gap-4">
+<div class="relative w-full aspect-video bg-surface rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 border-4 border-white">
+<img alt="Science experiment for kids" class="w-full h-full object-cover" data-alt="A bright, cheerful educational video thumbnail showing a fun science experiment for children. The scene features colorful bubbling beakers, playful animated graphics overlay, and a friendly instructor in a vibrant lab setting. Lighting is high-key and soft, creating a joyful and safe atmosphere. Soft-skeuomorphism style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCM6clZRHHkjOO5YSpdx3ZzO-gkWDbp_uGArjR7inoD_h4GbjPm1a2Rusue6fYBB8uu51HzsUOaM6H0GpOlbpVq-DkLCkp_8woq-7bnWi932bbKeZ5Fi53JGkD5Rv0vzHAaJILXLWsNAdO3AuLNaTdLRRKhvRHNJb7H65ELmbhTuXmIaVRvD9Chzykqviz_BhTarmnO3KHNko472Hdc-Ip1AK5pTTTWnBSzUYenuJfPzEkFt6gPEu8J-l3Raja8ONvdAeUPiw4hnOw"/>
+<!-- Play Controls Overlay -->
+<div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+<button class="text-on-primary rounded-full p-6 transform transition-transform active:scale-90 bg-transparent">
+<span class="material-symbols-outlined text-6xl" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="bg-white p-6 rounded-3xl shadow-xl shadow-primary/5 flex flex-col gap-2">
+<h2 class="font-child-title text-child-title text-primary-fixed-dim">Fun Science: Colorful Volcanoes!</h2>
+<p class="font-child-body text-child-body text-on-surface-variant">Let's learn how to make a safe, bubbly volcano at home.</p>
+</div>
+</section>
+<!-- Recommended Videos List -->
+<section class="flex flex-col gap-4">
+<h3 class="font-child-subtitle text-child-subtitle text-primary px-2">Recommended for You</h3>
+<div class="flex flex-col gap-6">
+<!-- Video Card 1 -->
+<article class="bg-white rounded-3xl p-4 flex gap-4 items-center shadow-lg shadow-primary/5 cursor-pointer active:translate-y-1 active:shadow-none transition-all border-b-4 border-surface-variant">
+<div class="w-32 h-24 rounded-2xl overflow-hidden shrink-0 relative">
+<img alt="Math video thumbnail" class="w-full h-full object-cover" data-alt="A vibrant thumbnail for a children's math educational video. The image displays large, colorful 3D numbers floating in a soft, bright environment. The style is playful and squishy, utilizing a soft-skeuomorphism aesthetic with gentle pastel colors and soft lighting to evoke curiosity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAB-IM_kWHQhzO9M6XqcBzid7P1QTVU8vPP5IHF_-rtUTHMIsPkiMlDC03EKVuNEOnMxwYVcxNW9i9wAroFBH-EREIsCKkcglM65iXLahaewCCA-_O2EWBGLysJ0o83R4xY2x_akmTsuF8wjuoP6YxCyKTL6lbrqOO2-Tu2Y4Q33jpeXLCpU05eekJrVSrDSNpYjU-HvjV0z_EHN8s1SJOUJcPlyT8MEmOdelOezVozvhNFqGNcc0t31EPQ2rhDNFbJVwuanYHEt2o"/>
+<div class="absolute bottom-1 right-1 bg-black/60 text-white font-parent-caption text-parent-caption px-2 py-0.5 rounded-lg">4:12</div>
+</div>
+<div class="flex flex-col gap-1">
+<h4 class="font-child-subtitle text-child-subtitle text-primary-fixed-dim line-clamp-2">Counting with Dinosaurs</h4>
+<p class="font-parent-caption text-parent-caption text-on-surface-variant">Numbers &amp; Shapes</p>
+</div>
+</article>
+<!-- Video Card 2 -->
+<article class="bg-white rounded-3xl p-4 flex gap-4 items-center shadow-lg shadow-primary/5 cursor-pointer active:translate-y-1 active:shadow-none transition-all border-b-4 border-surface-variant">
+<div class="w-32 h-24 rounded-2xl overflow-hidden shrink-0 relative">
+<img alt="Space video thumbnail" class="w-full h-full object-cover" data-alt="An engaging thumbnail for a kids space educational video. It features a cute, cartoonish rocket ship flying past glowing, colorful planets with soft, rounded edges against a gentle dark blue starry background. The overall look is playful, high-contrast, and friendly, utilizing a soft 3D style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiIu13DBB883RutKhUkz1GINl5Gcz_RFsX38ay0BHNpTQsmKK1k_KXFlaaD_krQ0a9_ofShg7K8Y3nPwzpU7902kCtGgK1xm0t181AGGWqCU63RZ4InpISip0nHTVyYhnaO0yJfpH3G3fLcDvUKwWhLpHxlGb50rekxyIWI4Byyo2WC6zbZCvPfR5IzzUyUu6_cbocUUKvSwfJsSepp0_un9WN_zY97ZjqVsRdJPdbehTyv1kBvUVQTuYezTi4YwEJ_ndaB3KIf24"/>
+<div class="absolute bottom-1 right-1 bg-black/60 text-white font-parent-caption text-parent-caption px-2 py-0.5 rounded-lg">7:30</div>
+</div>
+<div class="flex flex-col gap-1">
+<h4 class="font-child-subtitle text-child-subtitle text-primary-fixed-dim line-clamp-2">Exploring Our Solar System</h4>
+<p class="font-parent-caption text-parent-caption text-on-surface-variant">Space Adventure</p>
+</div>
+</article>
+<!-- Video Card 3 -->
+<article class="bg-white rounded-3xl p-4 flex gap-4 items-center shadow-lg shadow-primary/5 cursor-pointer active:translate-y-1 active:shadow-none transition-all border-b-4 border-surface-variant">
+<div class="w-32 h-24 rounded-2xl overflow-hidden shrink-0 relative">
+<img alt="Animals video thumbnail" class="w-full h-full object-cover" data-alt="A friendly thumbnail for a children's animal educational video. The image shows a group of adorable, soft-textured cartoon farm animals smiling in a bright, sunny meadow. The lighting is cheerful and bright, emphasizing a soft-skeuomorphism aesthetic with lush, organic shapes and high-contrast, safe colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBII299Zzd9ws1hAzosrZH5PMZEbAPdQRuHdOBxpAKx938PFv3Ct3ToILGQZQJvOBFYzf-B5kNhUGRzR5OGaQJsFLYWXpBBIAQ_oyY5-XI1tW3VCI5RC-quBDkvoS-7H0p_iVZTDHtdVRZFTcByxzPBSrGEauCsAgxhD6DMv5zC06wflCens8geVoCaz8jYVxsiJNFMVGTJkCje-1__udjub56U3wf2clegGTO7Q2ooCV61E9kDiPi22BjYss6GMfKK_AfA3yvanCA"/>
+<div class="absolute bottom-1 right-1 bg-black/60 text-white font-parent-caption text-parent-caption px-2 py-0.5 rounded-lg">5:45</div>
+</div>
+<div class="flex flex-col gap-1">
+<h4 class="font-child-subtitle text-child-subtitle text-primary-fixed-dim line-clamp-2">Meet the Farm Animals</h4>
+<p class="font-parent-caption text-parent-caption text-on-surface-variant">Nature Explorer</p>
+</div>
+</article>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center h-20 px-4 bg-surface-container-lowest border-t border-outline-variant md:hidden">
+<div class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed font-bold hover:bg-surface-container-high transition-colors active:scale-98 rounded-xl p-2 w-16 h-16">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-parent-caption text-parent-caption">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container-high transition-colors active:scale-98 rounded-xl p-2 w-16 h-16">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 0;">analytics</span>
+<span class="font-parent-caption text-parent-caption">Reports</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container-high transition-colors active:scale-98 rounded-xl p-2 w-16 h-16">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 0;">tune</span>
+<span class="font-parent-caption text-parent-caption">Control</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container-high transition-colors active:scale-98 rounded-xl p-2 w-16 h-16">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-parent-caption text-parent-caption">Settings</span>
+</div>
+</nav>
+</body></html>

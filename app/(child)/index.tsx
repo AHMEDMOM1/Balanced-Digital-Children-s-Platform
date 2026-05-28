@@ -1,110 +1,117 @@
 /**
- * Child Home Screen — Activity Picker
- * Large, friendly cards for Stories, Games, and Creative activities.
- * Includes PIN lock exit button for parents.
+ * Child Home Screen — SafePlay Timer Activity Picker
+ * Large, friendly activity cards with remaining time indicator.
  */
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
+import Header from '../../components/ui/Header';
 import PinLock from '../../components/ui/PinLock';
 import useSettingsStore from '../../store/useSettingsStore';
+import useSessionStore from '../../store/useSessionStore';
 
 export default function ChildHomeScreen() {
     const router = useRouter();
     const [showPinLock, setShowPinLock] = useState(false);
     const { storiesEnabled, gamesEnabled, creativeEnabled, videosEnabled } = useSettingsStore();
+    const { dailyTimeLimitMinutes, sessionsPerDay } = useSettingsStore();
+    const { elapsedSeconds } = useSessionStore();
+
+    // Calculate time remaining for current session
+    const maxSessionSeconds = Math.floor((dailyTimeLimitMinutes * 60) / sessionsPerDay);
+    const remainingSeconds = Math.max(0, maxSessionSeconds - elapsedSeconds);
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     const activities = [
         {
             id: 'stories',
-            emoji: '📖',
-            title: 'Hikayeler',
-            titleEn: 'Stories',
-            color: Colors.child.cardStory,
+            icon: 'book-outline' as const,
+            title: 'Stories',
+            color: '#E8E0FF',
+            iconColor: '#7C5CFC',
             enabled: storiesEnabled,
             route: '/(child)/stories' as const,
         },
         {
             id: 'games',
-            emoji: '🧩',
-            title: 'Zeka Oyunları',
-            titleEn: 'Brain Games',
-            color: Colors.child.cardGame,
+            icon: 'extension-puzzle-outline' as const,
+            title: 'Games',
+            color: '#FFE0E0',
+            iconColor: '#FF6B6B',
             enabled: gamesEnabled,
             route: '/(child)/games' as const,
         },
         {
             id: 'creative',
-            emoji: '🎨',
-            title: 'Yaratıcı Etkinlikler',
-            titleEn: 'Creative',
-            color: Colors.child.cardCreative,
+            icon: 'color-palette-outline' as const,
+            title: 'Create',
+            color: '#FFF4D1',
+            iconColor: '#FFB800',
             enabled: creativeEnabled,
             route: '/(child)/creative' as const,
         },
         {
             id: 'videos',
-            emoji: '🎬',
-            title: 'Eğitici Videolar',
-            titleEn: 'Videos',
-            color: Colors.child.cardVideo,
+            icon: 'play-circle-outline' as const,
+            title: 'Videos',
+            color: '#F2ECF4',
+            iconColor: '#494551',
             enabled: videosEnabled,
             route: '/(child)/videos' as const,
         },
     ];
 
     return (
-        <SafeAreaView style={styles.safe}>
+        <LinearGradient colors={['#F2EEFF', '#FFF1D6']} style={styles.container}>
+            <Header onLockPress={() => setShowPinLock(true)} />
+
             <ScrollView
-                style={styles.container}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
             >
-                {/* ── Welcome ── */}
-                <View style={styles.welcome}>
-                    <Text style={styles.welcomeEmoji}>🌈</Text>
-                    <Text style={styles.welcomeTitle}>Merhaba Şampiyon!</Text>
-                    <Text style={styles.welcomeSub}>Eğlenceli bir aktivite seç</Text>
+                <View style={styles.welcomeContainer}>
+                    <Text style={styles.welcomeTitle}>Hi Leo!</Text>
+                    <Text style={styles.welcomeSubtitle}>Ready for an adventure today?</Text>
                 </View>
 
-                {/* ── Activity Cards ── */}
-                <View style={styles.cards}>
+                {/* ── Time Pill ── */}
+                <View style={styles.timerPill}>
+                    <Ionicons name="time-outline" size={20} color={Colors.child.textPrimary} />
+                    <Text style={styles.timerText}>{formatTime(remainingSeconds)} remaining</Text>
+                </View>
+
+                {/* ── Grid ── */}
+                <View style={styles.grid}>
                     {activities.map((activity) => {
                         if (!activity.enabled) return null;
                         return (
                             <TouchableOpacity
                                 key={activity.id}
                                 activeOpacity={0.8}
-                                style={[styles.activityCard, { backgroundColor: activity.color }]}
-                                onPress={() => {
-                                    if (activity.route) {
-                                        router.push(activity.route);
-                                    }
-                                }}
+                                style={[styles.card, { backgroundColor: activity.color }]}
+                                onPress={() => router.push(activity.route)}
                             >
-                                <Text style={styles.activityEmoji}>{activity.emoji}</Text>
-                                <Text style={styles.activityTitle}>{activity.title}</Text>
-                                <Text style={styles.activityTitleEn}>{activity.titleEn}</Text>
+                                <View style={styles.iconCircle}>
+                                    <Ionicons name={activity.icon} size={36} color={activity.iconColor} />
+                                </View>
+                                <Text style={[styles.cardTitle, { color: activity.iconColor }]}>
+                                    {activity.title}
+                                </Text>
                             </TouchableOpacity>
                         );
                     })}
                 </View>
-
-                {/* ── Exit Button (requires PIN) ── */}
-                <TouchableOpacity
-                    style={styles.exitButton}
-                    onPress={() => setShowPinLock(true)}
-                    activeOpacity={0.7}
-                >
-                    <Text style={styles.exitText}>🔒 Çıkış Yap (Sadece Ebeveynler)</Text>
-                </TouchableOpacity>
             </ScrollView>
 
-            {/* ── PIN Lock Modal ── */}
             <PinLock
                 visible={showPinLock}
                 onSuccess={() => {
@@ -113,81 +120,83 @@ export default function ChildHomeScreen() {
                 }}
                 onCancel={() => setShowPinLock(false)}
             />
-        </SafeAreaView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: Colors.child.background },
-    container: { flex: 1 },
+    container: {
+        flex: 1,
+    },
     content: {
         paddingHorizontal: Layout.screen.paddingHorizontal,
-        paddingTop: Layout.spacing.xl,
+        paddingTop: Layout.spacing.xxl,
         paddingBottom: Layout.spacing.xxl,
+        alignItems: 'center',
     },
-
-    // ── Welcome ──
-    welcome: {
+    welcomeContainer: {
         alignItems: 'center',
         marginBottom: Layout.spacing.xl,
-    },
-    welcomeEmoji: {
-        fontSize: 56,
-        marginBottom: Layout.spacing.sm,
     },
     welcomeTitle: {
         ...Typography.child.hero,
-        color: Colors.child.textPrimary,
-        textAlign: 'center',
+        color: Colors.child.primary,
+        marginBottom: 4,
     },
-    welcomeSub: {
+    welcomeSubtitle: {
         ...Typography.child.subtitle,
         color: Colors.child.textSecondary,
-        textAlign: 'center',
-        marginTop: 4,
     },
-
-    // ── Cards ──
-    cards: {
-        gap: Layout.spacing.lg,
-        marginBottom: Layout.spacing.xl,
-    },
-    activityCard: {
-        borderRadius: Layout.radius.xl,
-        padding: Layout.spacing.xl,
+    timerPill: {
+        flexDirection: 'row',
         alignItems: 'center',
-        minHeight: 160,
-        justifyContent: 'center',
-        elevation: 4,
-        shadowColor: Colors.child.primary,
+        gap: 8,
+        backgroundColor: Colors.child.surfaceContainer,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: Layout.radius.full,
+        marginBottom: Layout.spacing.xxxl,
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
-    activityEmoji: {
-        fontSize: 56,
-        marginBottom: Layout.spacing.sm,
-    },
-    activityTitle: {
-        ...Typography.child.title,
+    timerText: {
+        ...Typography.child.body,
+        fontSize: 16,
+        fontWeight: '600',
         color: Colors.child.textPrimary,
     },
-    activityTitleEn: {
-        ...Typography.child.body,
-        color: Colors.child.textSecondary,
-        marginTop: 2,
+    grid: {
+        width: '100%',
+        gap: Layout.spacing.lg,
     },
-
-    // ── Exit ──
-    exitButton: {
-        alignSelf: 'center',
-        paddingVertical: Layout.spacing.md,
-        paddingHorizontal: Layout.spacing.lg,
-        borderRadius: Layout.radius.round,
-        backgroundColor: 'rgba(0,0,0,0.05)',
+    card: {
+        width: '100%',
+        borderRadius: Layout.radius.xxxl,
+        padding: Layout.spacing.xl,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 140,
+        // Elevation/Shadow
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
     },
-    exitText: {
-        ...Typography.parent.caption,
-        color: Colors.child.textSecondary,
+    iconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: Colors.shared.white,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Layout.spacing.sm,
+    },
+    cardTitle: {
+        ...Typography.child.title,
+        fontSize: 22,
     },
 });

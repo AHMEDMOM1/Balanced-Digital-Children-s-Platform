@@ -33,6 +33,14 @@ export interface ParentSettings {
 
 const STORAGE_KEY = '@parent_settings';
 
+// Check if AsyncStorage native module is available
+let storageAvailable = true;
+try {
+    AsyncStorage.getItem('__test__').catch(() => { storageAvailable = false; });
+} catch {
+    storageAvailable = false;
+}
+
 const useSettingsStore = create<ParentSettings>((set, get) => ({
     dailyTimeLimitMinutes: 45,
     sessionsPerDay: 3,
@@ -78,6 +86,7 @@ const useSettingsStore = create<ParentSettings>((set, get) => ({
     },
 
     loadSettings: async () => {
+        if (!storageAvailable) return;
         try {
             const data = await AsyncStorage.getItem(STORAGE_KEY);
             if (data) {
@@ -93,11 +102,12 @@ const useSettingsStore = create<ParentSettings>((set, get) => ({
                 });
             }
         } catch (e) {
-            console.warn('Failed to load settings:', e);
+            storageAvailable = false;
         }
     },
 
     saveSettings: async () => {
+        if (!storageAvailable) return;
         try {
             const state = get();
             const data = JSON.stringify({
@@ -111,7 +121,7 @@ const useSettingsStore = create<ParentSettings>((set, get) => ({
             });
             await AsyncStorage.setItem(STORAGE_KEY, data);
         } catch (e) {
-            console.warn('Failed to save settings:', e);
+            storageAvailable = false;
         }
     },
 }));

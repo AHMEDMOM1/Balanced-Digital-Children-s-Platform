@@ -1,5 +1,6 @@
 /**
  * Root Layout — Loads fonts and provides the root navigation stack.
+ * Includes global SessionOverlay to block usage when time expires.
  */
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
@@ -11,8 +12,10 @@ import {
     Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Colors from '../constants/Colors';
 import useSettingsStore from '../store/useSettingsStore';
+import SessionOverlay from '../components/ui/SessionOverlay';
 
 export default function RootLayout() {
     const loadSettings = useSettingsStore((s) => s.loadSettings);
@@ -36,7 +39,7 @@ export default function RootLayout() {
     }
 
     return (
-        <>
+        <SafeAreaProvider>
             <StatusBar style="dark" />
             <Stack
                 screenOptions={{
@@ -44,7 +47,9 @@ export default function RootLayout() {
                     animation: 'fade',
                 }}
             />
-        </>
+            {/* Global Overlay for Session/Time Control */}
+            <SessionOverlay />
+        </SafeAreaProvider>
     );
 }
 

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Build-a-Bot</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#241a00",
+                      "inverse-surface": "#322f35",
+                      "error-container": "#ffdad6",
+                      "on-primary-fixed": "#22005d",
+                      "inverse-on-surface": "#f5eff7",
+                      "secondary-fixed-dim": "#cdc0e9",
+                      "surface-container-highest": "#e6e0e9",
+                      "outline-variant": "#cbc4d2",
+                      "on-surface-variant": "#494551",
+                      "on-secondary": "#ffffff",
+                      "primary": "#4f378a",
+                      "on-primary-fixed-variant": "#4f378a",
+                      "secondary-fixed": "#e9ddff",
+                      "primary-fixed-dim": "#cfbcff",
+                      "on-surface": "#1d1b20",
+                      "tertiary-fixed": "#ffdf93",
+                      "on-tertiary-container": "#503d00",
+                      "on-secondary-fixed": "#1f1635",
+                      "on-background": "#1d1b20",
+                      "surface-container-low": "#f8f2fa",
+                      "on-error-container": "#93000a",
+                      "tertiary": "#765b00",
+                      "surface-variant": "#e6e0e9",
+                      "surface-bright": "#fdf7ff",
+                      "surface-tint": "#6750a4",
+                      "surface": "#fdf7ff",
+                      "on-secondary-fixed-variant": "#4b4263",
+                      "surface-container": "#f2ecf4",
+                      "on-tertiary": "#ffffff",
+                      "on-primary": "#ffffff",
+                      "surface-container-high": "#ece6ee",
+                      "secondary": "#63597c",
+                      "primary-fixed": "#e9ddff",
+                      "outline": "#7a7582",
+                      "error": "#ba1a1a",
+                      "on-primary-container": "#e0d2ff",
+                      "surface-container-lowest": "#ffffff",
+                      "background": "#fdf7ff",
+                      "tertiary-container": "#c9a74d",
+                      "surface-dim": "#ded8e0",
+                      "inverse-primary": "#cfbcff",
+                      "on-error": "#ffffff",
+                      "on-secondary-container": "#645a7d",
+                      "on-tertiary-fixed-variant": "#594400",
+                      "tertiary-fixed-dim": "#e7c365",
+                      "secondary-container": "#e1d4fd",
+                      "primary-container": "#6750a4"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "child-padding-v": "24px",
+                      "parent-gap": "12px",
+                      "child-gap": "20px",
+                      "child-padding-h": "24px",
+                      "parent-padding-v": "16px",
+                      "parent-padding-h": "20px"
+              },
+              "fontFamily": {},
+              "fontSize": {
+                      "parent-body": [
+                              "15px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "parent-subtitle": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "parent-title": [
+                              "22px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "child-subtitle": [
+                              "20px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "child-title": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "child-hero": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "parent-caption": [
+                              "13px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "child-body": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .child-shadow {
+            box-shadow: 0 10px 25px -5px rgba(79, 55, 138, 0.15), 0 8px 10px -6px rgba(79, 55, 138, 0.1);
+        }
+        .child-button-shadow {
+            box-shadow: 0 8px 0 0 rgba(34, 0, 93, 0.2);
+        }
+        .child-button-active:active {
+            box-shadow: 0 0 0 0 rgba(34, 0, 93, 0.2);
+            transform: translateY(8px);
+        }
+        .soft-skeuomorphism {
+            background: linear-gradient(145deg, #ffffff, #f2ecf4);
+            border: 2px solid #ffffff;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-low min-h-screen font-sans antialiased text-on-surface">
+<!-- Top Navigation Container -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-parent-padding-h h-16 bg-primary dark:bg-primary-container font-parent-title text-parent-title docked full-width top-0 rounded-b-xl shadow-xl shadow-primary/20 shadow-xl">
+<button class="text-on-primary hover:opacity-80 active:scale-95 transition-transform flex items-center justify-center p-2 rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">arrow_back</span>
+</button>
+<div class="text-parent-title font-parent-title font-bold text-on-primary">
+            Build-a-Bot
+        </div>
+<button class="text-on-primary hover:opacity-80 active:scale-95 transition-transform flex items-center justify-center p-2 rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">help</span>
+</button>
+</nav>
+<!-- Main Content Area -->
+<main class="pt-24 pb-32 px-child-padding-h max-w-4xl mx-auto flex flex-col md:flex-row gap-child-gap h-[calc(100vh-5rem)]">
+<!-- 3D Canvas Area (Center/Left) -->
+<div class="flex-1 soft-skeuomorphism rounded-3xl child-shadow p-6 flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-surface-bright to-surface-container">
+<div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at 50% 50%, #4f378a 2px, transparent 2.5px); background-size: 30px 30px;"></div>
+<img alt="A colorful, friendly looking 3D rendered toy robot standing proudly in the center. The robot has a smooth, glossy finish with bright lavender and cyan accents. The background is a soft, dreamlike gradient of light purples and whites, creating a playful, safe, and imaginative child-mode aesthetic." class="w-full max-w-md object-contain z-10 animate-[bounce_4s_ease-in-out_infinite]" data-alt="A colorful, friendly looking 3D rendered toy robot standing proudly in the center. The robot has a smooth, glossy finish with bright lavender and cyan accents. The background is a soft, dreamlike gradient of light purples and whites, creating a playful, safe, and imaginative child-mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOkDA5fZp2MrlrpGq2XWE2VQxbcJGTmmHc9cK7YcoJj-S5eEg8Iim818daSh8qpsfEHQ-rQYXsWDOZRtYYwcyszrKWqmfms4YBpHWy96sOtlRQm_OXeCGY9D7dRkmH3A4Q2K6ZLv4qk-bNvbgR0CdqKoOnescJeRWhig7phQpyrLq2GovlyKm2r26lKX6VxGss5nYdbWWYWRzCJIV_JuQsJscew_h_bWBllKAtWnF0rCvcjNDGPb5HZ54Nybp6acBD-q8otCgzWKU"/>
+<!-- Floating Controls -->
+<div class="absolute bottom-6 right-6 flex gap-4 z-20">
+<button class="bg-on-primary text-primary w-14 h-14 rounded-full child-shadow flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all border-2 border-primary/10">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">rotate_right</span>
+</button>
+</div>
+</div>
+<!-- Parts Picker (Right/Bottom) -->
+<div class="w-full md:w-80 flex flex-col gap-6">
+<!-- Category Tabs -->
+<div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+<button class="px-6 py-3 rounded-full bg-primary text-on-primary font-child-subtitle child-shadow border-2 border-primary/20 whitespace-nowrap flex-shrink-0">
+                    Heads
+                </button>
+<button class="px-6 py-3 rounded-full bg-surface text-on-surface font-child-subtitle border-2 border-outline-variant whitespace-nowrap flex-shrink-0 hover:bg-surface-container transition-colors">
+                    Torsos
+                </button>
+<button class="px-6 py-3 rounded-full bg-surface text-on-surface font-child-subtitle border-2 border-outline-variant whitespace-nowrap flex-shrink-0 hover:bg-surface-container transition-colors">
+                    Arms
+                </button>
+<button class="px-6 py-3 rounded-full bg-surface text-on-surface font-child-subtitle border-2 border-outline-variant whitespace-nowrap flex-shrink-0 hover:bg-surface-container transition-colors">
+                    Legs
+                </button>
+</div>
+<!-- Parts Grid -->
+<div class="grid grid-cols-2 gap-4 overflow-y-auto pr-2 pb-20">
+<!-- Part Card 1 -->
+<div class="bg-surface rounded-2xl p-4 flex flex-col items-center gap-3 border-4 border-primary child-shadow cursor-pointer transition-transform hover:scale-105">
+<div class="w-full h-24 bg-surface-container-highest rounded-xl flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-5xl text-primary">smart_toy</span>
+</div>
+<span class="font-child-body text-child-body text-on-surface font-bold">Classic</span>
+</div>
+<!-- Part Card 2 -->
+<div class="bg-surface rounded-2xl p-4 flex flex-col items-center gap-3 border-2 border-surface-variant cursor-pointer transition-transform hover:scale-105">
+<div class="w-full h-24 bg-surface-container rounded-xl flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-5xl text-on-surface-variant">face</span>
+</div>
+<span class="font-child-body text-child-body text-on-surface font-bold">Friendly</span>
+</div>
+<!-- Part Card 3 -->
+<div class="bg-surface rounded-2xl p-4 flex flex-col items-center gap-3 border-2 border-surface-variant cursor-pointer transition-transform hover:scale-105">
+<div class="w-full h-24 bg-surface-container rounded-xl flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-5xl text-on-surface-variant">cruelty_free</span>
+</div>
+<span class="font-child-body text-child-body text-on-surface font-bold">Animal</span>
+</div>
+<!-- Part Card 4 -->
+<div class="bg-surface rounded-2xl p-4 flex flex-col items-center gap-3 border-2 border-surface-variant cursor-pointer transition-transform hover:scale-105">
+<div class="w-full h-24 bg-surface-container rounded-xl flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-5xl text-on-surface-variant">sports_esports</span>
+</div>
+<span class="font-child-body text-child-body text-on-surface font-bold">Gamer</span>
+</div>
+<!-- Part Card 5 -->
+<div class="bg-surface rounded-2xl p-4 flex flex-col items-center gap-3 border-2 border-surface-variant cursor-pointer transition-transform hover:scale-105">
+<div class="w-full h-24 bg-surface-container rounded-xl flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-5xl text-on-surface-variant">emoji_nature</span>
+</div>
+<span class="font-child-body text-child-body text-on-surface font-bold">Nature</span>
+</div>
+<!-- Part Card 6 -->
+<div class="bg-surface rounded-2xl p-4 flex flex-col items-center gap-3 border-2 border-surface-variant cursor-pointer transition-transform hover:scale-105">
+<div class="w-full h-24 bg-surface-container rounded-xl flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-5xl text-on-surface-variant">rocket_launch</span>
+</div>
+<span class="font-child-body text-child-body text-on-surface font-bold">Space</span>
+</div>
+</div>
+<!-- Fixed Action Button Area -->
+<div class="mt-auto pt-4 bg-gradient-to-t from-surface-container-low via-surface-container-low to-transparent md:bg-none pb-4 md:pb-0">
+<button class="w-full bg-primary text-on-primary font-child-title text-child-title py-4 rounded-full child-button-shadow child-button-active transition-all flex items-center justify-center gap-3">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">celebration</span>
+                    Done!
+                </button>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Shell Placeholder (Suppressed as per rules for focused journey, but structure shown for reference if it wasn't suppressed) -->
+<!-- Suppressed: Task-Focused view. -->
+</body></html>
