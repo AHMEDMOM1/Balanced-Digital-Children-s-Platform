@@ -3,7 +3,7 @@
  * Gradient background with glow blobs matching reception area aesthetic.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,52 +12,18 @@ import Header from '../../components/ui/Header';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
+import { useVideos } from '../../services/api/hooks';
 
-const videos = [
-    {
-        id: 1,
-        emoji: '🦁🐘🦒',
-        title: 'Animal Kingdom',
-        description: 'Learn about lions, tigers, and bears!',
-        thumbBg: '#D4E7D1',
-        titleColor: '#6750A4',
-        borderColor: 'rgba(79, 55, 138, 0.2)',
-        shadowColor: Colors.child.primary,
-    },
-    {
-        id: 2,
-        emoji: '🎵🔢🎶',
-        title: 'Number Songs',
-        description: 'Sing along and count to 100.',
-        thumbBg: '#FFF1D6',
-        titleColor: '#C9A74D',
-        borderColor: 'rgba(118, 91, 0, 0.2)',
-        shadowColor: '#765B00',
-    },
-    {
-        id: 3,
-        emoji: '🧪🪐⚗️',
-        title: 'Science Fun',
-        description: 'Exciting experiments you can watch.',
-        thumbBg: '#E1D4FD',
-        titleColor: '#63597C',
-        borderColor: 'rgba(99, 89, 124, 0.2)',
-        shadowColor: '#63597C',
-    },
-    {
-        id: 4,
-        emoji: '📖🌳👦',
-        title: 'Story Time',
-        description: 'Relax with our favorite bedtime tales.',
-        thumbBg: '#D8E8D4',
-        titleColor: '#6750A4',
-        borderColor: 'rgba(79, 55, 138, 0.2)',
-        shadowColor: Colors.child.primary,
-    },
+const fallbackVideoStyles = [
+    { thumbBg: '#D4E7D1', titleColor: '#6750A4', borderColor: 'rgba(79, 55, 138, 0.2)', shadowColor: Colors.child.primary },
+    { thumbBg: '#FFF1D6', titleColor: '#C9A74D', borderColor: 'rgba(118, 91, 0, 0.2)', shadowColor: '#765B00' },
+    { thumbBg: '#E1D4FD', titleColor: '#63597C', borderColor: 'rgba(99, 89, 124, 0.2)', shadowColor: '#63597C' },
+    { thumbBg: '#D8E8D4', titleColor: '#6750A4', borderColor: 'rgba(79, 55, 138, 0.2)', shadowColor: Colors.child.primary },
 ];
 
 export default function VideosScreen() {
     const router = useRouter();
+    const { data: videos, isLoading, isOffline, error } = useVideos();
 
     return (
         <LinearGradient colors={['#F2EEFF', '#FDF7FF', '#FFF6E8']} style={styles.safe}>
@@ -80,44 +46,79 @@ export default function VideosScreen() {
                     <Ionicons name="play-circle" size={36} color={Colors.child.primary} />
                 </View>
 
+                {/* ── Loading State ── */}
+                {isLoading && (
+                    <View style={styles.centerState}>
+                        <ActivityIndicator size="large" color={Colors.child.primary} />
+                        <Text style={styles.stateText}>Loading videos...</Text>
+                    </View>
+                )}
+
+                {/* ── Error State ── */}
+                {error && (
+                    <View style={styles.centerState}>
+                        <Ionicons name="cloud-offline-outline" size={48} color={Colors.child.textSecondary} />
+                        <Text style={styles.stateText}>Could not load videos</Text>
+                    </View>
+                )}
+
+                {/* ── Empty State ── */}
+                {!isLoading && !error && (!videos || videos.length === 0) && (
+                    <View style={styles.centerState}>
+                        <Text style={styles.emptyEmoji}>🎬</Text>
+                        <Text style={styles.stateText}>No videos available right now!</Text>
+                    </View>
+                )}
+
+                {/* ── Offline Banner ── */}
+                {isOffline && (
+                    <View style={styles.offlineBanner}>
+                        <Ionicons name="wifi-outline" size={16} color="#765B00" />
+                        <Text style={styles.offlineText}>Showing cached content</Text>
+                    </View>
+                )}
+
                 {/* ── Video Cards ── */}
-                {videos.map((video, index) => (
-                    <Animated.View
-                        key={video.id}
-                        entering={FadeInDown.delay(index * 120).duration(500)}
-                    >
-                        <TouchableOpacity
-                            activeOpacity={0.9}
-                            style={[
-                                styles.videoCard,
-                                {
-                                    borderBottomColor: video.borderColor,
-                                    shadowColor: video.shadowColor,
-                                },
-                            ]}
-                            onPress={() => router.push(`/(child)/video/${video.id}`)}
+                {videos?.map((video, index) => {
+                    const vstyle = fallbackVideoStyles[index % fallbackVideoStyles.length];
+                    return (
+                        <Animated.View
+                            key={video.id}
+                            entering={FadeInDown.delay(index * 120).duration(500)}
                         >
-                            {/* Thumbnail Area */}
-                            <View style={[styles.thumbnailArea, { backgroundColor: video.thumbBg }]}>
-                                <Text style={styles.thumbnailEmoji}>{video.emoji}</Text>
-                                {/* Play Overlay */}
-                                <View style={styles.playOverlay}>
-                                    <View style={styles.playCircle}>
-                                        <Ionicons name="play" size={32} color="#FFFFFF" />
+                            <TouchableOpacity
+                                activeOpacity={0.9}
+                                style={[
+                                    styles.videoCard,
+                                    {
+                                        borderBottomColor: vstyle.borderColor,
+                                        shadowColor: vstyle.shadowColor,
+                                    },
+                                ]}
+                                onPress={() => router.push(`/(child)/video/${video.id}`)}
+                            >
+                                {/* Thumbnail Area */}
+                                <View style={[styles.thumbnailArea, { backgroundColor: vstyle.thumbBg }]}>
+                                    <Text style={styles.thumbnailEmoji}>{video.thumbnail_url || '🎬'}</Text>
+                                    {/* Play Overlay */}
+                                    <View style={styles.playOverlay}>
+                                        <View style={styles.playCircle}>
+                                            <Ionicons name="play" size={32} color="#FFFFFF" />
+                                        </View>
                                     </View>
                                 </View>
-                            </View>
 
-                            {/* Info Area */}
-                            <View style={styles.infoArea}>
-                                <Text style={[styles.videoTitle, { color: video.titleColor }]}>
-                                    {video.title}
-                                </Text>
-                                <Text style={styles.videoDesc}>{video.description}</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
-                ))}
+                                {/* Info Area */}
+                                <View style={styles.infoArea}>
+                                    <Text style={[styles.videoTitle, { color: vstyle.titleColor }]}>
+                                        {video.title}
+                                    </Text>
+                                    <Text style={styles.videoDesc}>{video.category}</Text>
+                                </View>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    );
+                })}
             </ScrollView>
         </LinearGradient>
     );
@@ -225,5 +226,35 @@ const styles = StyleSheet.create({
     videoDesc: {
         ...Typography.child.body,
         color: Colors.child.textSecondary,
+    },
+
+    centerState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Layout.spacing.xxxl,
+        gap: 16,
+    },
+    stateText: {
+        ...Typography.child.body,
+        color: Colors.child.textSecondary,
+        textAlign: 'center',
+    },
+    emptyEmoji: {
+        fontSize: 64,
+    },
+    offlineBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#FFF1D6',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: Layout.radius.full,
+    },
+    offlineText: {
+        ...Typography.child.body,
+        fontSize: 13,
+        color: '#765B00',
     },
 });

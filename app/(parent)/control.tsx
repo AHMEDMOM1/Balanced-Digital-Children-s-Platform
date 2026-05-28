@@ -2,14 +2,18 @@
  * Parent Control Screen — SafePlay Timer
  * Manage time limits, sessions, and allowed activities.
  */
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Switch, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, ScrollView, StyleSheet, Switch, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import Header from '../../components/ui/Header';
 import useSettingsStore from '../../store/useSettingsStore';
+import useAuthStore from '../../store/useAuthStore';
+import { useCategoryPreferences } from '../../services/api/hooks';
+
+const KNOWN_CATEGORIES = ['Adventure', 'Educational', 'Fantasy', 'Science', 'Fun', 'Creative'];
 
 export default function ControlScreen() {
     const { 
@@ -26,6 +30,10 @@ export default function ControlScreen() {
         videosEnabled,
         toggleVideos
     } = useSettingsStore();
+
+    const children = useAuthStore((s) => s.children);
+    const activeChild = children[0];
+    const { preferences, isLoading: catLoading, toggleCategory } = useCategoryPreferences();
 
     const ControlItem = ({ icon, title, subtitle, value, onValueChange, type = 'switch' }: any) => (
         <View style={styles.controlItem}>
@@ -122,6 +130,60 @@ export default function ControlScreen() {
                     </View>
                 </View>
 
+                {activeChild && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Category Preferences ({activeChild.name})</Text>
+                        <View style={styles.card}>
+                            {catLoading ? (
+                                <View style={styles.loadingRow}>
+                                    <ActivityIndicator size="small" color={Colors.parent.primary} />
+                                    <Text style={styles.loadingText}>Loading preferences...</Text>
+                                </View>
+                            ) : (
+                                KNOWN_CATEGORIES.map((category, i) => {
+                                    const pref = preferences.find(
+                                        (p) => p.child_id === activeChild.id && p.category === category,
+                                    );
+                                    const isAllowed = pref?.is_allowed ?? true;
+                                    return (
+                                        <React.Fragment key={category}>
+                                            {i > 0 && <View style={styles.divider} />}
+                                            <View style={styles.controlItem}>
+                                                <View style={styles.controlIconCircle}>
+                                                    <Ionicons
+                                                        name={
+                                                            category === 'Adventure' ? 'compass-outline' :
+                                                            category === 'Educational' ? 'school-outline' :
+                                                            category === 'Fantasy' ? 'rainbow-outline' :
+                                                            category === 'Science' ? 'flask-outline' :
+                                                            category === 'Fun' ? 'happy-outline' :
+                                                            'bulb-outline'
+                                                        }
+                                                        size={22}
+                                                        color={Colors.parent.primary}
+                                                    />
+                                                </View>
+                                                <View style={styles.controlTextContainer}>
+                                                    <Text style={styles.controlTitle}>{category}</Text>
+                                                    <Text style={styles.controlSubtitle}>
+                                                        {isAllowed ? 'Allowed' : 'Blocked'}
+                                                    </Text>
+                                                </View>
+                                                <Switch
+                                                    value={isAllowed}
+                                                    onValueChange={(val) => { toggleCategory(activeChild.id, category, val); }}
+                                                    trackColor={{ false: '#767577', true: Colors.parent.primary }}
+                                                    thumbColor={Colors.shared.white}
+                                                />
+                                            </View>
+                                        </React.Fragment>
+                                    );
+                                })
+                            )}
+                        </View>
+                    </View>
+                )}
+
                 <View style={styles.infoBox}>
                     <Ionicons name="information-circle-outline" size={20} color={Colors.parent.textSecondary} />
                     <Text style={styles.infoText}>
@@ -199,6 +261,17 @@ const styles = StyleSheet.create({
         minWidth: 30,
         textAlign: 'center',
     },
+    loadingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: Layout.spacing.lg,
+    },
+    loadingText: {
+        ...Typography.parent.body,
+        color: Colors.parent.textSecondary,
+    },
+
     infoBox: {
         flexDirection: 'row',
         gap: 10,

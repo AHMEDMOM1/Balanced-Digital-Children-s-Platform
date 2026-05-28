@@ -90,7 +90,7 @@ export default function IndexScreen() {
                 <Animated.View entering={FadeIn.delay(900).duration(500)}>
                     <TouchableOpacity
                         style={styles.parentLink}
-                        onPress={() => router.push('/(parent)')}
+                        onPress={() => router.push('/auth/login')}
                     >
                         <Ionicons name="shield-checkmark-outline" size={20} color="#7A7582" />
                         <Text style={styles.parentLinkText}>Parent Login</Text>

@@ -7,7 +7,7 @@
  * - Floating close and audio buttons
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
@@ -15,46 +15,40 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../../../constants/Colors';
 import Typography from '../../../constants/Typography';
 import Layout from '../../../constants/Layout';
+import { useContentById } from '../../../services/api/hooks';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const storiesData: Record<string, { title: string; pages: { text: string; emoji: string }[] }> = {
-    '1': {
-        title: 'The Little Explorer',
-        pages: [
-            { text: 'Once upon a time, in a cozy forest filled with twinkling fireflies, there lived a curious little bear named Pip.', emoji: '🐻' },
-            { text: 'Pip loved adventures more than anything. Every morning, he would put on his tiny backpack and set out to explore.', emoji: '🎒' },
-            { text: 'Pip found a glowing rock under the big oak tree. "I wonder if it\'s magic?" he whispered to his friend, Luna the owl.', emoji: '🦉' },
-            { text: 'Luna hooted softly. "Magic is everywhere, Pip, if you know where to look." They decided to follow the glow.', emoji: '✨' },
-            { text: 'The glow led them to a hidden door in the hillside. It was covered in colorful flowers that sang in the wind.', emoji: '🌸' },
-        ]
-    },
-    '2': {
-        title: 'Luna\'s Night Sky',
-        pages: [
-            { text: 'When the sun goes down, Luna the owl wakes up. She stretches her soft wings and looks at the beautiful stars.', emoji: '🌙' },
-            { text: '"Tonight I will count every star!" said Luna. She flew up high, higher than the tallest tree.', emoji: '⭐' },
-            { text: 'She found a shooting star and made a wish. "I wish for a friend to share the night sky with."', emoji: '🌠' },
-        ]
-    },
-    '3': {
-        title: 'The Garden Friends',
-        pages: [
-            { text: 'In a sunny garden, there lived a sunflower named Sunny. She was the tallest flower of all.', emoji: '🌻' },
-            { text: 'One day, a tiny seed fell beside her. "Hello! I\'m Daisy!" said the seed. Sunny smiled warmly.', emoji: '🌱' },
-            { text: 'Day by day, Sunny shared her sunshine, and Daisy grew taller. They became the best of friends.', emoji: '🌼' },
-        ]
-    },
+const storyTemplates: Record<string, { text: string; emoji: string }[]> = {
+    'default': [
+        { text: 'Once upon a time, in a land not so far away, there was a wonderful adventure waiting to begin.', emoji: '🌟' },
+        { text: 'Our hero looked around with wide eyes, ready to explore every corner of this magical world.', emoji: '🗺️' },
+        { text: 'A friendly creature appeared and smiled. "Follow me," it said, "I will show you something amazing!"', emoji: '🦊' },
+        { text: 'Together they discovered a secret place full of wonder and joy, where every dream could come true.', emoji: '✨' },
+        { text: 'And so, with a happy heart, our hero knew that the greatest adventures are the ones we share with friends.', emoji: '💫' },
+    ],
 };
+
+function getStoryPages(title: string): { text: string; emoji: string }[] {
+    const templates = storyTemplates['default'];
+    return templates.map((page, i) => ({
+        ...page,
+        emoji: [
+            '📖', '🌟', '🦋', '🌈', '💫', '🎉',
+        ][i % 6],
+    }));
+}
 
 export default function StoryScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const [pageIndex, setPageIndex] = useState(0);
+    const { data: content, isLoading, error } = useContentById(id as string);
 
-    const story = storiesData[id as string] || storiesData['1'];
-    const currentPage = story.pages[pageIndex];
-    const isLastPage = pageIndex === story.pages.length - 1;
+    const storyTitle = content?.title || 'Story Time';
+    const pages = getStoryPages(storyTitle);
+    const currentPage = pages[pageIndex];
+    const isLastPage = pageIndex === pages.length - 1;
     const isFirstPage = pageIndex === 0;
 
     const nextPage = () => {
@@ -68,54 +62,75 @@ export default function StoryScreen() {
 
     return (
         <SafeAreaView style={styles.safe}>
-            {/* ── Story Header (Floating) ── */}
-            <View style={styles.header}>
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={styles.headerButton}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="close" size={28} color={Colors.child.primary} />
-                </TouchableOpacity>
-
-                <View style={styles.titlePill}>
-                    <Ionicons name="book" size={20} color={Colors.child.secondary} />
-                    <Text style={styles.titleText} numberOfLines={1}>{story.title}</Text>
+            {/* ── Loading State ── */}
+            {isLoading && (
+                <View style={styles.centerState}>
+                    <ActivityIndicator size="large" color={Colors.child.primary} />
                 </View>
+            )}
 
-                <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
-                    <Ionicons name="volume-high" size={28} color={Colors.child.primary} />
-                </TouchableOpacity>
-            </View>
+            {/* ── Error State ── */}
+            {error && (
+                <View style={styles.centerState}>
+                    <Ionicons name="cloud-offline-outline" size={48} color={Colors.child.textSecondary} />
+                    <Text style={styles.stateText}>Could not load story</Text>
+                    <TouchableOpacity style={styles.retryBtn} onPress={() => router.back()}>
+                        <Text style={styles.retryBtnText}>Go Back</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
-            {/* ── Main Story Canvas ── */}
-            <View style={styles.content}>
-                <Animated.View
-                    key={pageIndex}
-                    entering={FadeInRight.duration(400)}
-                    exiting={FadeOutLeft.duration(300)}
-                    style={styles.bookCard}
-                >
-                    {/* Illustration Area */}
-                    <View style={styles.illustrationArea}>
-                        <Text style={styles.illustrationEmoji}>{currentPage.emoji}</Text>
+            {/* ── Story Content ── */}
+            {!isLoading && !error && (
+                <>
+                    {/* ── Story Header (Floating) ── */}
+                    <View style={styles.header}>
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            style={styles.headerButton}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="close" size={28} color={Colors.child.primary} />
+                        </TouchableOpacity>
 
-                        {/* Page Badge */}
-                        <View style={styles.pageBadge}>
-                            <Text style={styles.pageBadgeText}>
-                                Page {pageIndex + 1} of {story.pages.length}
-                            </Text>
+                        <View style={styles.titlePill}>
+                            <Ionicons name="book" size={20} color={Colors.child.secondary} />
+                            <Text style={styles.titleText} numberOfLines={1}>{storyTitle}</Text>
                         </View>
+
+                        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+                            <Ionicons name="volume-high" size={28} color={Colors.child.primary} />
+                        </TouchableOpacity>
                     </View>
 
-                    {/* Text Area */}
-                    <View style={styles.textArea}>
-                        <Text style={styles.storyText}>{currentPage.text}</Text>
-                    </View>
-                </Animated.View>
+                    {/* ── Main Story Canvas ── */}
+                    <View style={styles.content}>
+                        <Animated.View
+                            key={pageIndex}
+                            entering={FadeInRight.duration(400)}
+                            exiting={FadeOutLeft.duration(300)}
+                            style={styles.bookCard}
+                        >
+                            {/* Illustration Area */}
+                            <View style={styles.illustrationArea}>
+                                <Text style={styles.illustrationEmoji}>{currentPage.emoji}</Text>
 
-                {/* ── Navigation Controls ── */}
-                <View style={styles.navControls}>
+                                {/* Page Badge */}
+                                <View style={styles.pageBadge}>
+                                    <Text style={styles.pageBadgeText}>
+                                        Page {pageIndex + 1} of {pages.length}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Text Area */}
+                            <View style={styles.textArea}>
+                                <Text style={styles.storyText}>{currentPage.text}</Text>
+                            </View>
+                        </Animated.View>
+
+                        {/* ── Navigation Controls ── */}
+                        <View style={styles.navControls}>
                     {/* Previous Button */}
                     <TouchableOpacity
                         onPress={prevPage}
@@ -135,7 +150,7 @@ export default function StoryScreen() {
 
                     {/* Progress Dots */}
                     <View style={styles.dotsRow}>
-                        {story.pages.map((_, i) => (
+                        {pages.map((_, i) => (
                             <View
                                 key={i}
                                 style={[
@@ -160,6 +175,8 @@ export default function StoryScreen() {
                     </TouchableOpacity>
                 </View>
             </View>
+                </>
+            )}
 
             {/* ── Decorative Background Blurs ── */}
             <View style={styles.decorContainer} pointerEvents="none">
@@ -175,6 +192,29 @@ const styles = StyleSheet.create({
     safe: {
         flex: 1,
         backgroundColor: Colors.child.background,
+    },
+
+    centerState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        padding: Layout.spacing.xxl,
+    },
+    stateText: {
+        ...Typography.child.body,
+        color: Colors.child.textSecondary,
+        textAlign: 'center',
+    },
+    retryBtn: {
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: Layout.radius.full,
+        backgroundColor: Colors.child.primary,
+    },
+    retryBtnText: {
+        ...Typography.child.subtitle,
+        color: Colors.child.onPrimary,
     },
 
     // ── Header ──

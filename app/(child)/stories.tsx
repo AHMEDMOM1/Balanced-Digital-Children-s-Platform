@@ -4,7 +4,7 @@
  * and floating glow blobs like the reception area.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,42 +13,17 @@ import Header from '../../components/ui/Header';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
+import { useStories } from '../../services/api/hooks';
 
-const stories = [
-    {
-        id: 1,
-        emoji: '🦁',
-        title: 'The Brave Little Lion',
-        description: 'Join Leo on his first big adventure across the sunny savanna!',
-        coverBg: '#E1D4FD',
-        btnBg: Colors.child.primaryFixed,
-        btnBorder: Colors.child.primaryFixedDim,
-        btnTextColor: Colors.child.primary,
-    },
-    {
-        id: 2,
-        emoji: '🌙',
-        title: 'Starlight Adventures',
-        description: 'Sail across the Milky Way and catch falling stars before bedtime.',
-        coverBg: '#4f378a',
-        btnBg: Colors.child.primary,
-        btnBorder: '#22005d',
-        btnTextColor: Colors.child.onPrimary,
-    },
-    {
-        id: 3,
-        emoji: '🐻',
-        title: 'Forest Friends',
-        description: 'Discover the hidden secrets of the whispering woods.',
-        coverBg: '#FFDF93',
-        btnBg: '#E9DDFF',
-        btnBorder: '#CDC0E9',
-        btnTextColor: Colors.child.primary,
-    },
+const fallbackColors = [
+    { coverBg: '#E1D4FD', btnBg: Colors.child.primaryFixed, btnBorder: Colors.child.primaryFixedDim, btnTextColor: Colors.child.primary },
+    { coverBg: '#4f378a', btnBg: Colors.child.primary, btnBorder: '#22005d', btnTextColor: Colors.child.onPrimary },
+    { coverBg: '#FFDF93', btnBg: '#E9DDFF', btnBorder: '#CDC0E9', btnTextColor: Colors.child.primary },
 ];
 
 export default function StoriesScreen() {
     const router = useRouter();
+    const { data: stories, isLoading, isOffline, error } = useStories();
 
     return (
         <LinearGradient colors={['#F2EEFF', '#FDF7FF', '#FFF6E8']} style={styles.safe}>
@@ -72,48 +47,83 @@ export default function StoriesScreen() {
                     </Text>
                 </View>
 
+                {/* ── Loading State ── */}
+                {isLoading && (
+                    <View style={styles.centerState}>
+                        <ActivityIndicator size="large" color={Colors.child.primary} />
+                        <Text style={styles.stateText}>Loading stories...</Text>
+                    </View>
+                )}
+
+                {/* ── Error State ── */}
+                {error && (
+                    <View style={styles.centerState}>
+                        <Ionicons name="cloud-offline-outline" size={48} color={Colors.child.textSecondary} />
+                        <Text style={styles.stateText}>Could not load stories</Text>
+                    </View>
+                )}
+
+                {/* ── Empty State ── */}
+                {!isLoading && !error && (!stories || stories.length === 0) && (
+                    <View style={styles.centerState}>
+                        <Text style={styles.emptyEmoji}>🌳</Text>
+                        <Text style={styles.stateText}>Time to play outside!</Text>
+                    </View>
+                )}
+
+                {/* ── Offline Banner ── */}
+                {isOffline && (
+                    <View style={styles.offlineBanner}>
+                        <Ionicons name="wifi-outline" size={16} color="#765B00" />
+                        <Text style={styles.offlineText}>Showing cached content</Text>
+                    </View>
+                )}
+
                 {/* ── Story Cards ── */}
-                {stories.map((story, index) => (
-                    <Animated.View
-                        key={story.id}
-                        entering={FadeInDown.delay(index * 150).duration(500)}
-                    >
-                        <View style={styles.storyCard}>
-                            {/* Cover Illustration */}
-                            <View style={[styles.coverArea, { backgroundColor: story.coverBg }]}>
-                                <Text style={styles.coverEmoji}>{story.emoji}</Text>
-                            </View>
+                {stories?.map((story, index) => {
+                    const colors = fallbackColors[index % fallbackColors.length];
+                    return (
+                        <Animated.View
+                            key={story.id}
+                            entering={FadeInDown.delay(index * 150).duration(500)}
+                        >
+                            <View style={styles.storyCard}>
+                                {/* Cover Illustration */}
+                                <View style={[styles.coverArea, { backgroundColor: colors.coverBg }]}>
+                                    <Text style={styles.coverEmoji}>{story.thumbnail_url || '📖'}</Text>
+                                </View>
 
-                            {/* Info Area */}
-                            <View style={styles.infoArea}>
-                                <Text style={styles.storyTitle}>{story.title}</Text>
-                                <Text style={styles.storyDesc}>{story.description}</Text>
+                                {/* Info Area */}
+                                <View style={styles.infoArea}>
+                                    <Text style={styles.storyTitle}>{story.title}</Text>
+                                    <Text style={styles.storyCategory}>{story.category}</Text>
 
-                                {/* Read Now Button (3D) */}
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    style={[
-                                        styles.readBtn,
-                                        {
-                                            backgroundColor: story.btnBg,
-                                            borderBottomColor: story.btnBorder,
-                                        },
-                                    ]}
-                                    onPress={() => router.push(`/(child)/story/${story.id}`)}
-                                >
-                                    <Ionicons
-                                        name="book"
-                                        size={22}
-                                        color={story.btnTextColor}
-                                    />
-                                    <Text style={[styles.readBtnText, { color: story.btnTextColor }]}>
-                                        Read Now
-                                    </Text>
-                                </TouchableOpacity>
+                                    {/* Read Now Button (3D) */}
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
+                                        style={[
+                                            styles.readBtn,
+                                            {
+                                                backgroundColor: colors.btnBg,
+                                                borderBottomColor: colors.btnBorder,
+                                            },
+                                        ]}
+                                        onPress={() => router.push(`/(child)/story/${story.id}`)}
+                                    >
+                                        <Ionicons
+                                            name="book"
+                                            size={22}
+                                            color={colors.btnTextColor}
+                                        />
+                                        <Text style={[styles.readBtnText, { color: colors.btnTextColor }]}>
+                                            Read Now
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                        </View>
-                    </Animated.View>
-                ))}
+                        </Animated.View>
+                    );
+                })}
             </ScrollView>
         </LinearGradient>
     );
@@ -213,6 +223,47 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 28,
+    },
+
+    storyCategory: {
+        ...Typography.child.body,
+        color: Colors.child.textSecondary,
+        textAlign: 'center',
+        marginBottom: 24,
+        fontSize: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+
+    // ── States ──
+    centerState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Layout.spacing.xxxl,
+        gap: 16,
+    },
+    stateText: {
+        ...Typography.child.body,
+        color: Colors.child.textSecondary,
+        textAlign: 'center',
+    },
+    emptyEmoji: {
+        fontSize: 64,
+    },
+    offlineBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#FFF1D6',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: Layout.radius.full,
+    },
+    offlineText: {
+        ...Typography.child.body,
+        fontSize: 13,
+        color: '#765B00',
     },
 
     // ── Read Now Button (3D) ──

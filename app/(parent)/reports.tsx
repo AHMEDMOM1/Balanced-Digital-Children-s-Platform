@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
@@ -57,7 +58,10 @@ export default function ReportsScreen() {
                     <View style={styles.barChart}>
                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
                             <View key={day} style={styles.barContainer}>
-                                <View style={[styles.bar, { height: [60, 90, 40, 110, 70, 120, 80][i] }]} />
+                                <LinearGradient
+                                    colors={['#9D7CFF', Colors.parent.primary]}
+                                    style={[styles.bar, { height: [60, 90, 40, 110, 70, 120, 80][i] }]}
+                                />
                                 <Text style={styles.barLabel}>{day}</Text>
                             </View>
                         ))}
@@ -68,10 +72,10 @@ export default function ReportsScreen() {
                 <View style={styles.breakdownCard}>
                     <Text style={styles.sectionTitle}>Activity Breakdown</Text>
                     
-                    <BreakdownItem title="Brain Games" value="5h 20m" percent={0.4} color="#FF6B6B" />
-                    <BreakdownItem title="StoryTime" value="4h 10m" percent={0.3} color="#7C5CFC" />
-                    <BreakdownItem title="Creative Zone" value="3h 15m" percent={0.2} color="#FFB800" />
-                    <BreakdownItem title="Videos" value="1h 45m" percent={0.1} color="#494551" />
+                    <BreakdownItem title="Brain Games" value="5h 20m" percent={0.9} color="#FF6B6B" />
+                    <BreakdownItem title="StoryTime" value="4h 10m" percent={0.7} color="#7C5CFC" />
+                    <BreakdownItem title="Creative Zone" value="3h 15m" percent={0.55} color="#FFB800" />
+                    <BreakdownItem title="Videos" value="1h 45m" percent={0.3} color="#494551" />
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -180,9 +184,9 @@ const styles = StyleSheet.create({
     },
     barChart: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'space-around',
         alignItems: 'flex-end',
-        height: 140,
+        height: 150,
         paddingTop: Layout.spacing.md,
     },
     barContainer: {
@@ -191,10 +195,9 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     bar: {
-        width: '70%',
-        backgroundColor: Colors.parent.primary,
-        borderRadius: 6,
-        opacity: 0.85,
+        width: 28,
+        borderRadius: 8,
+        opacity: 0.9,
     },
     barLabel: {
         ...Typography.parent.caption,
@@ -226,12 +229,13 @@ const styles = StyleSheet.create({
         color: Colors.parent.textSecondary,
     },
     progressBg: {
-        height: 12,
-        backgroundColor: Colors.parent.inputBg,
-        borderRadius: 6,
+        height: 16,
+        backgroundColor: '#F2ECF4',
+        borderRadius: 8,
         overflow: 'hidden',
     },
     progressFill: {
         height: '100%',
+        borderRadius: 8,
     },
 });
