@@ -18,6 +18,7 @@ export interface ParentSettings {
 
     // ── PIN Lock ───────────────────────────────
     pinCode: string;                  // 4-digit string
+    isPinSetup: boolean;
 
     // ── Actions ────────────────────────────────
     setDailyTimeLimit: (minutes: number) => void;
@@ -49,6 +50,7 @@ const useSettingsStore = create<ParentSettings>((set, get) => ({
     creativeEnabled: true,
     videosEnabled: true,
     pinCode: '1234',
+    isPinSetup: false,
 
     setDailyTimeLimit: (minutes: number) => {
         set({ dailyTimeLimitMinutes: Math.max(15, Math.min(120, minutes)) });
@@ -81,7 +83,7 @@ const useSettingsStore = create<ParentSettings>((set, get) => ({
     },
 
     setPinCode: (pin: string) => {
-        set({ pinCode: pin });
+        set({ pinCode: pin, isPinSetup: true });
         get().saveSettings();
     },
 
@@ -99,6 +101,7 @@ const useSettingsStore = create<ParentSettings>((set, get) => ({
                     creativeEnabled: parsed.creativeEnabled ?? true,
                     videosEnabled: parsed.videosEnabled ?? true,
                     pinCode: parsed.pinCode ?? '1234',
+                    isPinSetup: parsed.isPinSetup ?? false,
                 });
             }
         } catch (e) {
@@ -118,6 +121,7 @@ const useSettingsStore = create<ParentSettings>((set, get) => ({
                 creativeEnabled: state.creativeEnabled,
                 videosEnabled: state.videosEnabled,
                 pinCode: state.pinCode,
+                isPinSetup: state.isPinSetup,
             });
             await AsyncStorage.setItem(STORAGE_KEY, data);
         } catch (e) {

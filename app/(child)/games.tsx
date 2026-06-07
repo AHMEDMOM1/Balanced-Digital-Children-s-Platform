@@ -9,10 +9,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Header from '../../components/ui/Header';
+import EmptyState from '../../components/ui/EmptyState';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
-import { useGames } from '../../services/api/hooks';
+import { useGames } from '../../services/api/games';
 
 const gameCardStyles = [
     { bg: 'rgba(255,218,214,0.85)', icon: 'extension-puzzle', borderColor: 'rgba(186, 26, 26, 0.2)', titleColor: '#93000A' },
@@ -67,10 +68,7 @@ export default function GamesScreen() {
 
                 {/* ── Empty State ── */}
                 {!isLoading && !error && (!games || games.length === 0) && (
-                    <View style={styles.centerState}>
-                        <Text style={styles.emptyEmoji}>🎨</Text>
-                        <Text style={styles.stateText}>No games available right now!</Text>
-                    </View>
+                    <EmptyState emoji="🎨" title="No games available right now!" />
                 )}
 
                 {/* ── Offline Banner ── */}

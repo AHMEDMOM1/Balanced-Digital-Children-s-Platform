@@ -3,7 +3,7 @@
  * Gradient background with glow blobs matching reception area aesthetic.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,9 +12,32 @@ import Header from '../../components/ui/Header';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
+import { useCreative } from '../../services/api/creative';
+import EmptyState from '../../components/ui/EmptyState';
+
+const activityIcons: Record<string, string> = {
+    'Art': 'color-palette',
+    'Building': 'hardware-chip',
+    'Music': 'musical-notes',
+    'Writing': 'document-text',
+};
+
+const activityRoutes: Record<string, string> = {
+    'Magic Canvas': '/(child)/creative-canvas',
+    'Build-a-Bot Workshop': '/(child)/creative-bot',
+    'Sticker World': '/(child)/creative-stickers',
+};
+
+const activityColorStyles: Record<string, { bg: string; iconCircle: string; titleColor: string; border: string; glow: string }> = {
+    'Art': { bg: 'rgba(255,223,147,0.85)', iconCircle: 'rgba(255, 255, 255, 0.5)', titleColor: '#241A00', border: '#E7C365', glow: 'rgba(255, 255, 255, 0.3)' },
+    'Building': { bg: 'rgba(225,212,253,0.85)', iconCircle: 'rgba(255, 255, 255, 0.5)', titleColor: '#645A7D', border: '#CDC0E9', glow: 'rgba(255, 255, 255, 0.3)' },
+    'Music': { bg: 'rgba(255,218,214,0.85)', iconCircle: 'rgba(255, 255, 255, 0.5)', titleColor: '#93000A', border: 'rgba(186, 26, 26, 0.2)', glow: 'rgba(255, 255, 255, 0.3)' },
+    'Writing': { bg: 'rgba(216,232,212,0.85)', iconCircle: 'rgba(255, 255, 255, 0.5)', titleColor: '#1B5E20', border: 'rgba(27, 94, 32, 0.2)', glow: 'rgba(255, 255, 255, 0.3)' },
+};
 
 export default function CreativeScreen() {
     const router = useRouter();
+    const { data: activities, isLoading, isOffline, error } = useCreative();
 
     return (
         <LinearGradient colors={['#FFF8E8', '#FDF7FF', '#F2EEFF']} style={styles.safe}>
@@ -39,86 +62,74 @@ export default function CreativeScreen() {
                     </Text>
                 </Animated.View>
 
+                {/* ── Loading State ── */}
+                {isLoading && (
+                    <View style={styles.centerState}>
+                        <ActivityIndicator size="large" color="#765B00" />
+                        <Text style={styles.stateText}>Loading activities...</Text>
+                    </View>
+                )}
+
+                {/* ── Error State ── */}
+                {error && (
+                    <View style={styles.centerState}>
+                        <Ionicons name="cloud-offline-outline" size={48} color={Colors.child.textSecondary} />
+                        <Text style={styles.stateText}>Could not load activities</Text>
+                    </View>
+                )}
+
+                {/* ── Empty State ── */}
+                {!isLoading && !error && (!activities || activities.length === 0) && (
+                    <EmptyState emoji="🎨" title="Time to play outside!" />
+                )}
+
+                {/* ── Offline Banner ── */}
+                {isOffline && (
+                    <View style={styles.offlineBanner}>
+                        <Ionicons name="wifi-outline" size={16} color="#765B00" />
+                        <Text style={styles.offlineText}>Showing cached content</Text>
+                    </View>
+                )}
+
                 {/* ── Bento Grid ── */}
-                <View style={styles.bentoGrid}>
-                    {/* Magic Canvas — Gold Card */}
-                    <Animated.View entering={FadeInDown.delay(150).duration(500)}>
-                        <TouchableOpacity
-                            activeOpacity={0.85}
-                            style={styles.canvasCard}
-                            onPress={() => router.push('/(child)/creative-canvas')}
-                        >
-                            {/* Glow blob */}
-                            <View style={styles.glowBlobTopRight} />
+                {activities && activities.length > 0 && (
+                    <View style={styles.bentoGrid}>
+                        {activities.map((activity, index) => {
+                            const category = activity.category || 'Art';
+                            const cStyle = activityColorStyles[category] || activityColorStyles['Art'];
+                            const icon = activityIcons[category] || 'color-palette';
+                            const route = activityRoutes[activity.title] || '/(child)/creative-canvas';
 
-                            {/* Icon Circle */}
-                            <View style={styles.iconCircleGold}>
-                                <Ionicons name="color-palette" size={36} color="#765B00" />
-                            </View>
+                            return (
+                                <Animated.View
+                                    key={activity.id}
+                                    entering={FadeInDown.delay(150 + index * 150).duration(500)}
+                                >
+                                    <TouchableOpacity
+                                        activeOpacity={0.85}
+                                        style={[styles.activityCard, { backgroundColor: cStyle.bg, borderBottomColor: cStyle.border }]}
+                                        onPress={() => router.push(route as any)}
+                                    >
+                                        <View style={[styles.glowBlob, { backgroundColor: cStyle.glow }]} />
 
-                            {/* Text */}
-                            <View style={styles.cardTextArea}>
-                                <Text style={styles.canvasTitle}>Magic Canvas</Text>
-                                <Text style={styles.canvasDesc}>Draw, paint, and color</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
+                                        <View style={[styles.iconCircle, { backgroundColor: cStyle.iconCircle }]}>
+                                            <Ionicons name={icon as any} size={36} color={cStyle.titleColor} />
+                                        </View>
 
-                    {/* Build-a-Bot — Purple Secondary Card */}
-                    <Animated.View entering={FadeInDown.delay(300).duration(500)}>
-                        <TouchableOpacity
-                            activeOpacity={0.85}
-                            style={styles.botCard}
-                            onPress={() => router.push('/(child)/creative-bot')}
-                        >
-                            {/* Glow blob */}
-                            <View style={styles.glowBlobBottomRight} />
-
-                            {/* Icon Circle */}
-                            <View style={styles.iconCirclePurple}>
-                                <Ionicons name="hardware-chip" size={36} color="#63597C" />
-                            </View>
-
-                            {/* Text */}
-                            <View style={styles.cardTextArea}>
-                                <Text style={styles.botTitle}>Build-a-Bot</Text>
-                                <Text style={styles.botDesc}>Assemble 3D characters</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
-
-                    {/* Sticker World — Deep Purple Card (Full Width) */}
-                    <Animated.View entering={FadeInDown.delay(450).duration(500)}>
-                        <TouchableOpacity
-                            activeOpacity={0.85}
-                            style={styles.stickerCard}
-                            onPress={() => router.push('/(child)/creative-stickers')}
-                        >
-                            {/* Center glow */}
-                            <View style={styles.glowCenter} />
-
-                            {/* Top Row: Icon + Text */}
-                            <View style={styles.stickerTopRow}>
-                                <View style={styles.iconCircleDeepPurple}>
-                                    <Ionicons name="sparkles" size={36} color="#FFFFFF" />
-                                </View>
-                                <View style={styles.stickerTextCol}>
-                                    <Text style={styles.stickerTitle}>Sticker World</Text>
-                                    <Text style={styles.stickerDesc}>
-                                        Decorate scenes with fun stickers
-                                    </Text>
-                                </View>
-                            </View>
-
-                            {/* Start Playing Pill */}
-                            <View style={styles.stickerBtnRow}>
-                                <View style={styles.startPill}>
-                                    <Text style={styles.startPillText}>Start Playing →</Text>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
-                </View>
+                                        <View style={styles.cardTextArea}>
+                                            <Text style={[styles.activityTitle, { color: cStyle.titleColor }]}>
+                                                {activity.title}
+                                            </Text>
+                                            {activity.description && (
+                                                <Text style={styles.activityDesc}>{activity.description}</Text>
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                </Animated.View>
+                            );
+                        })}
+                    </View>
+                )}
             </ScrollView>
         </LinearGradient>
     );
@@ -277,6 +288,74 @@ const styles = StyleSheet.create({
     botDesc: {
         ...Typography.child.body,
         color: '#645A7D',
+        opacity: 0.9,
+        marginTop: 4,
+    },
+
+    // ── States ──
+    centerState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: Layout.spacing.xxxl,
+        gap: 16,
+    },
+    stateText: {
+        ...Typography.child.body,
+        color: Colors.child.textSecondary,
+        textAlign: 'center',
+    },
+    emptyEmoji: {
+        fontSize: 64,
+    },
+    offlineBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#FFF1D6',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: Layout.radius.full,
+    },
+    offlineText: {
+        ...Typography.child.body,
+        fontSize: 13,
+        color: '#765B00',
+    },
+
+    // ── Activity Cards ──
+    activityCard: {
+        borderRadius: 32,
+        padding: 24,
+        minHeight: 200,
+        overflow: 'hidden',
+        borderBottomWidth: 6,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 6,
+    },
+    glowBlob: {
+        position: 'absolute',
+        top: -40,
+        right: -40,
+        width: 128,
+        height: 128,
+        borderRadius: 64,
+    },
+    iconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    activityTitle: {
+        ...Typography.child.title,
+    },
+    activityDesc: {
+        ...Typography.child.body,
+        color: Colors.child.textSecondary,
         opacity: 0.9,
         marginTop: 4,
     },

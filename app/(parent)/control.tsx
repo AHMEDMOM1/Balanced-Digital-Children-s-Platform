@@ -142,7 +142,7 @@ export default function ControlScreen() {
                             ) : (
                                 KNOWN_CATEGORIES.map((category, i) => {
                                     const pref = preferences.find(
-                                        (p) => p.child_id === activeChild.id && p.category === category,
+                                        (p: any) => p.child_id === activeChild.id && p.category === category,
                                     );
                                     const isAllowed = pref?.is_allowed ?? true;
                                     return (
@@ -152,12 +152,12 @@ export default function ControlScreen() {
                                                 <View style={styles.controlIconCircle}>
                                                     <Ionicons
                                                         name={
-                                                            category === 'Adventure' ? 'compass-outline' :
+                                                            (category === 'Adventure' ? 'compass-outline' :
                                                             category === 'Educational' ? 'school-outline' :
                                                             category === 'Fantasy' ? 'rainbow-outline' :
                                                             category === 'Science' ? 'flask-outline' :
                                                             category === 'Fun' ? 'happy-outline' :
-                                                            'bulb-outline'
+                                                            'bulb-outline') as any
                                                         }
                                                         size={22}
                                                         color={Colors.parent.primary}

@@ -10,10 +10,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Header from '../../components/ui/Header';
+import EmptyState from '../../components/ui/EmptyState';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
-import { useStories } from '../../services/api/hooks';
+import { useStories } from '../../services/api/stories';
 
 const fallbackColors = [
     { coverBg: '#E1D4FD', btnBg: Colors.child.primaryFixed, btnBorder: Colors.child.primaryFixedDim, btnTextColor: Colors.child.primary },
@@ -65,10 +66,7 @@ export default function StoriesScreen() {
 
                 {/* ── Empty State ── */}
                 {!isLoading && !error && (!stories || stories.length === 0) && (
-                    <View style={styles.centerState}>
-                        <Text style={styles.emptyEmoji}>🌳</Text>
-                        <Text style={styles.stateText}>Time to play outside!</Text>
-                    </View>
+                    <EmptyState emoji="🌳" title="Time to play outside!" />
                 )}
 
                 {/* ── Offline Banner ── */}

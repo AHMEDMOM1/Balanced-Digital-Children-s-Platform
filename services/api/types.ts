@@ -46,6 +46,7 @@ export interface ContentItem {
   max_age: number;
   url?: string;
   thumbnail_url: string;
+  description?: string;
 }
 
 export interface CategoryPreference {

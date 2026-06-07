@@ -16,9 +16,40 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import Colors from '../constants/Colors';
 import Typography from '../constants/Typography';
 import Layout from '../constants/Layout';
+import useSettingsStore from '../store/useSettingsStore';
+import useAuthStore from '../store/useAuthStore';
+import PinModal from '../components/ui/PinModal';
 
 export default function IndexScreen() {
     const router = useRouter();
+    const isPinSetup = useSettingsStore((s) => s.isPinSetup);
+    const pinCode = useSettingsStore((s) => s.pinCode);
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    
+    const [showPinModal, setShowPinModal] = React.useState(false);
+    const [pinTarget, setPinTarget] = React.useState<'/(child)' | '/(parent)'>('/(child)');
+
+    const handleStartPlaying = () => {
+        if (isPinSetup) {
+            setPinTarget('/(child)');
+            setShowPinModal(true);
+        } else {
+            router.push('/(child)');
+        }
+    };
+
+    const handleParentLogin = () => {
+        if (isAuthenticated) {
+            if (isPinSetup) {
+                setPinTarget('/(parent)');
+                setShowPinModal(true);
+            } else {
+                router.push('/auth/setup-pin');
+            }
+        } else {
+            router.push('/auth/login');
+        }
+    };
 
     return (
         <LinearGradient
@@ -71,7 +102,7 @@ export default function IndexScreen() {
                 <Animated.View entering={FadeInUp.delay(600).duration(600)} style={styles.buttonWrapper}>
                     <TouchableOpacity
                         style={styles.startButton}
-                        onPress={() => router.push('/(child)')}
+                        onPress={handleStartPlaying}
                         activeOpacity={0.85}
                     >
                         {/* 3D border-bottom highlight */}
@@ -90,13 +121,23 @@ export default function IndexScreen() {
                 <Animated.View entering={FadeIn.delay(900).duration(500)}>
                     <TouchableOpacity
                         style={styles.parentLink}
-                        onPress={() => router.push('/auth/login')}
+                        onPress={handleParentLogin}
                     >
                         <Ionicons name="shield-checkmark-outline" size={20} color="#7A7582" />
                         <Text style={styles.parentLinkText}>Parent Login</Text>
                     </TouchableOpacity>
                 </Animated.View>
             </View>
+
+            <PinModal
+                visible={showPinModal}
+                onClose={() => setShowPinModal(false)}
+                onSuccess={() => {
+                    setShowPinModal(false);
+                    router.push(pinTarget);
+                }}
+                correctPin={pinCode}
+            />
         </LinearGradient>
     );
 }

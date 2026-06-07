@@ -3,17 +3,19 @@
  * - Child avatar with name badge
  * - Age & birthday info
  * - Screen time usage stats (daily/weekly)
- * - Content permissions toggles
+ * - Content permissions toggles (live DB mutations via Supabase)
  * - Daily time limit slider
  * - Remove child danger zone
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch,
+    View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useCategoryPreferences } from '../../services/api/hooks';
+import useAuthStore from '../../store/useAuthStore';
 
 const S = {
     surface: '#FDF7FF',
@@ -37,41 +39,47 @@ const S = {
     successContainer: '#C8E6C9',
 };
 
-// Demo child data keyed by initial
-const CHILD_DATA: Record<string, {
-    name: string; age: number; birthday: string;
-    avatar: string; color: string;
-    dailyAvg: string; weeklyTotal: string; favActivity: string;
-}> = {
-    L: {
-        name: 'Leo Jenkins', age: 8, birthday: 'March 15, 2018',
-        avatar: 'L', color: '#C9A74D',
-        dailyAvg: '1h 23m', weeklyTotal: '9h 41m', favActivity: 'Games',
-    },
-    M: {
-        name: 'Mia Jenkins', age: 5, birthday: 'July 22, 2021',
-        avatar: 'M', color: '#E1D4FD',
-        dailyAvg: '45m', weeklyTotal: '5h 15m', favActivity: 'Stories',
-    },
-};
-
 export default function SettingsChildProfileScreen() {
     const router = useRouter();
     const { childId } = useLocalSearchParams<{ childId: string }>();
-    const child = CHILD_DATA[childId ?? 'L'] ?? CHILD_DATA['L'];
+    const children = useAuthStore((s) => s.children);
+    const child = children.find((c) => c.id === childId);
 
-    // Content permission toggles
-    const [stories, setStories] = useState(true);
-    const [games, setGames] = useState(true);
-    const [creative, setCreative] = useState(true);
-    const [videos, setVideos] = useState(child.name.includes('Leo'));
+    const { preferences, isLoading, toggleCategory } = useCategoryPreferences();
+
+    // Derive toggle states from preferences
+    const storyCategories = preferences.filter((p: any) => p.is_allowed && ['Adventure', 'Fantasy', 'Education', 'Mystery', 'Science', 'Slice of Life'].includes(p.category));
+    const gameCategories = preferences.filter((p: any) => p.is_allowed && ['Puzzles', 'Education', 'Creative', 'Music'].includes(p.category));
+    const videoCategories = preferences.filter((p: any) => p.is_allowed && ['Science', 'Music', 'Health', 'Education', 'Creative'].includes(p.category));
+    const creativeCategories = preferences.filter((p: any) => p.is_allowed && ['Art', 'Building', 'Music', 'Writing'].includes(p.category));
+
+    const storiesEnabled = storyCategories.length > 0;
+    const gamesEnabled = gameCategories.length > 0;
+    const videosEnabled = videoCategories.length > 0;
+    const creativeEnabled = creativeCategories.length > 0;
 
     // Time limit (minutes)
-    const [timeLimit, setTimeLimit] = useState(child.name.includes('Leo') ? 60 : 45);
+    const [timeLimit, setTimeLimit] = useState(45);
 
     const adjustTime = (delta: number) => {
         setTimeLimit(prev => Math.max(15, Math.min(120, prev + delta)));
     };
+
+    const handleToggle = async (contentType: string, enabled: boolean) => {
+        if (!childId) return;
+        await toggleCategory(childId, contentType, enabled);
+    };
+
+    if (!child) {
+        return (
+            <SafeAreaView style={styles.safe}>
+                <View style={styles.centerState}>
+                    <ActivityIndicator size="large" color={S.primary} />
+                    <Text style={styles.stateText}>Loading child profile...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.safe}>
@@ -87,65 +95,46 @@ export default function SettingsChildProfileScreen() {
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {/* ── Avatar & Identity ── */}
                 <View style={styles.heroSection}>
-                    <View style={[styles.heroAvatar, { backgroundColor: child.color }]}>
-                        <Text style={styles.heroAvatarText}>{child.avatar}</Text>
+                    <View style={[styles.heroAvatar, { backgroundColor: child.age_group === '2-4' ? '#C9A74D' : '#E1D4FD' }]}>
+                        <Text style={styles.heroAvatarText}>{child.name?.charAt(0)?.toUpperCase() || '?'}</Text>
                     </View>
                     <Text style={styles.heroName}>{child.name}</Text>
                     <View style={styles.heroBadgeRow}>
                         <View style={styles.heroBadge}>
                             <Ionicons name="calendar-outline" size={14} color={S.primary} />
-                            <Text style={styles.heroBadgeText}>Age {child.age}</Text>
-                        </View>
-                        <View style={styles.heroBadge}>
-                            <Ionicons name="gift-outline" size={14} color={S.primary} />
-                            <Text style={styles.heroBadgeText}>{child.birthday}</Text>
+                            <Text style={styles.heroBadgeText}>Age Group: {child.age_group}</Text>
                         </View>
                     </View>
                 </View>
 
-                {/* ── Usage Statistics ── */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeaderRow}>
-                        <Ionicons name="stats-chart" size={20} color={S.primary} />
-                        <Text style={styles.cardSectionTitle}>Usage Statistics</Text>
-                    </View>
-                    <View style={styles.cardDivider} />
-
-                    <View style={styles.statsGrid}>
-                        <View style={styles.statBox}>
-                            <Ionicons name="today-outline" size={22} color={S.primary} />
-                            <Text style={styles.statValue}>{child.dailyAvg}</Text>
-                            <Text style={styles.statLabel}>Daily Average</Text>
-                        </View>
-                        <View style={styles.statBox}>
-                            <Ionicons name="calendar-outline" size={22} color={S.primary} />
-                            <Text style={styles.statValue}>{child.weeklyTotal}</Text>
-                            <Text style={styles.statLabel}>This Week</Text>
-                        </View>
-                        <View style={styles.statBox}>
-                            <Ionicons name="star-outline" size={22} color={S.tertiaryContainer} />
-                            <Text style={styles.statValue}>{child.favActivity}</Text>
-                            <Text style={styles.statLabel}>Favorite</Text>
+                {/* ── Loading state for preferences ── */}
+                {isLoading && (
+                    <View style={styles.card}>
+                        <View style={styles.centerState}>
+                            <ActivityIndicator size="small" color={S.primary} />
+                            <Text style={styles.stateText}>Loading preferences...</Text>
                         </View>
                     </View>
-                </View>
+                )}
 
-                {/* ── Content Permissions ── */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeaderRow}>
-                        <Ionicons name="shield-checkmark-outline" size={20} color={S.primary} />
-                        <Text style={styles.cardSectionTitle}>Content Permissions</Text>
+                {/* ── Content Permissions (live DB mutations) ── */}
+                {!isLoading && (
+                    <View style={styles.card}>
+                        <View style={styles.cardHeaderRow}>
+                            <Ionicons name="shield-checkmark-outline" size={20} color={S.primary} />
+                            <Text style={styles.cardSectionTitle}>Content Permissions</Text>
+                        </View>
+                        <View style={styles.cardDivider} />
+
+                        <ToggleRow icon="book-outline" label="Stories" value={storiesEnabled} onToggle={() => handleToggle('stories', !storiesEnabled)} />
+                        <View style={styles.thinDivider} />
+                        <ToggleRow icon="game-controller-outline" label="Games" value={gamesEnabled} onToggle={() => handleToggle('games', !gamesEnabled)} />
+                        <View style={styles.thinDivider} />
+                        <ToggleRow icon="brush-outline" label="Creative Activities" value={creativeEnabled} onToggle={() => handleToggle('creative', !creativeEnabled)} />
+                        <View style={styles.thinDivider} />
+                        <ToggleRow icon="videocam-outline" label="Videos" value={videosEnabled} onToggle={() => handleToggle('videos', !videosEnabled)} />
                     </View>
-                    <View style={styles.cardDivider} />
-
-                    <ToggleRow icon="book-outline" label="Stories" value={stories} onToggle={() => setStories(!stories)} />
-                    <View style={styles.thinDivider} />
-                    <ToggleRow icon="game-controller-outline" label="Games" value={games} onToggle={() => setGames(!games)} />
-                    <View style={styles.thinDivider} />
-                    <ToggleRow icon="brush-outline" label="Creative Activities" value={creative} onToggle={() => setCreative(!creative)} />
-                    <View style={styles.thinDivider} />
-                    <ToggleRow icon="videocam-outline" label="Videos" value={videos} onToggle={() => setVideos(!videos)} />
-                </View>
+                )}
 
                 {/* ── Daily Time Limit ── */}
                 <View style={styles.card}>
@@ -311,4 +300,13 @@ const styles = StyleSheet.create({
         borderRadius: 8, paddingVertical: 10, paddingHorizontal: 20, alignSelf: 'flex-start',
     },
     deleteBtnText: { fontSize: 15, fontWeight: '600', color: S.onErrorContainer },
+
+    // ── States ──
+    centerState: {
+        alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 48, gap: 16,
+    },
+    stateText: {
+        fontSize: 15, color: S.onSurfaceVariant, textAlign: 'center',
+    },
 });

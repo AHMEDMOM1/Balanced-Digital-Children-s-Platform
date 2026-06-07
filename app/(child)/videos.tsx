@@ -9,10 +9,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Header from '../../components/ui/Header';
+import EmptyState from '../../components/ui/EmptyState';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
-import { useVideos } from '../../services/api/hooks';
+import { useVideos } from '../../services/api/videos';
 
 const fallbackVideoStyles = [
     { thumbBg: '#D4E7D1', titleColor: '#6750A4', borderColor: 'rgba(79, 55, 138, 0.2)', shadowColor: Colors.child.primary },
@@ -64,10 +65,7 @@ export default function VideosScreen() {
 
                 {/* ── Empty State ── */}
                 {!isLoading && !error && (!videos || videos.length === 0) && (
-                    <View style={styles.centerState}>
-                        <Text style={styles.emptyEmoji}>🎬</Text>
-                        <Text style={styles.stateText}>No videos available right now!</Text>
-                    </View>
+                    <EmptyState emoji="🎬" title="No videos available right now!" />
                 )}
 
                 {/* ── Offline Banner ── */}

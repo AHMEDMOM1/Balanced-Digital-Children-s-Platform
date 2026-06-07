@@ -1,127 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getClient } from './client';
-import type { ContentItem, ApiResponse, ContentType, CategoryPreference, AgeGroup } from './types';
+import { useState, useCallback, useEffect } from 'react';
+import type { ContentItem, ContentType, CategoryPreference, AgeGroup, ApiResponse } from './types';
+import { signInWithOtp, verifyOtp, logout as authLogout, generateFamilyCode, redeemFamilyCode, verifyParentPin, updateParentPin } from '../auth';
 import useAuthStore from '../../store/useAuthStore';
 import useDataStore from '../../store/useDataStore';
-import { signInWithOtp, verifyOtp, logout as authLogout, generateFamilyCode, redeemFamilyCode, verifyParentPin, updateParentPin } from '../auth';
+import { getClient } from './client';
 
-type AgeGroupMap = Record<string, { min: number; max: number }>;
-
-const AGE_GROUP_RANGES: AgeGroupMap = {
-  '2-4': { min: 2, max: 4 },
-  '5-7': { min: 5, max: 7 },
-  '8-10': { min: 8, max: 10 },
-};
-
-async function fetchChildAgeGroup(childId: string): Promise<{ min: number; max: number } | null> {
-  const client = getClient();
-  const { data, error } = await client
-    .from('profiles')
-    .select('age_group')
-    .eq('id', childId)
-    .single();
-
-  if (error || !data?.age_group) return null;
-  return AGE_GROUP_RANGES[data.age_group] || null;
-}
-
-async function fetchAllowedCategories(childId: string): Promise<string[]> {
-  const client = getClient();
-  const { data, error } = await client
-    .from('category_preferences')
-    .select('category')
-    .eq('child_id', childId)
-    .eq('is_allowed', true);
-
-  if (error || !data) return [];
-  return data.map((p: { category: string }) => p.category);
-}
-
-async function fetchContentByType(
-  type: ContentType,
-  ageRange: { min: number; max: number } | null,
-  allowedCategories: string[],
-): Promise<ContentItem[]> {
-  const client = getClient();
-  let query = client
-    .from('content_items')
-    .select('*')
-    .eq('type', type);
-
-  if (ageRange) {
-    query = query.lte('min_age', ageRange.max).gte('max_age', ageRange.min);
-  }
-
-  if (allowedCategories.length > 0) {
-    query = query.in('category', allowedCategories);
-  }
-
-  const { data, error } = await query;
-  if (error || !data) return [];
-  return data as ContentItem[];
-}
-
-function useContent(type: ContentType) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isOffline, setIsOffline] = useState(false);
-
-  const childData = useAuthStore((s) => s.childData);
-  const role = useAuthStore((s) => s.role);
-
-  const cache = useDataStore((s) => s.cache);
-  const cacheSetters = useDataStore.getState();
-
-  const cacheKey = `${type}s` as 'stories' | 'games' | 'videos' | 'creative';
-  const cachedItems = cache[cacheKey] as ContentItem[];
-  const setCache = cacheSetters[`set${type.charAt(0).toUpperCase() + type.slice(1)}s` as 'setStories' | 'setGames' | 'setVideos' | 'setCreative'];
-
-  const fetch = useCallback(async () => {
-    if (role !== 'child' || !childData?.id) return;
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const ageRange = await fetchChildAgeGroup(childData.id);
-      const allowedCategories = await fetchAllowedCategories(childData.id);
-      const items = await fetchContentByType(type, ageRange, allowedCategories);
-      setCache(items as ContentItem[] & ContentItem[]);
-      setIsOffline(false);
-    } catch (err: any) {
-      if (cachedItems.length > 0) {
-        setIsOffline(true);
-      } else {
-        setError(err?.message || 'Failed to load content');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [type, role, childData?.id, cachedItems.length, setCache]);
-
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  const data = cachedItems.length > 0 ? cachedItems : null;
-
-  return { data, error, isOffline, isLoading, refetch: fetch } as ApiResponse<ContentItem[]> & { refetch: () => Promise<void> };
-}
-
-export function useStories() {
-  return useContent('story');
-}
-
-export function useGames() {
-  return useContent('game');
-}
-
-export function useVideos() {
-  return useContent('video');
-}
-
-export function useCreative() {
-  return useContent('creative');
-}
+export { useStories } from './stories';
+export { useGames } from './games';
+export { useVideos } from './videos';
+export { useCreative } from './creative';
 
 async function fetchContentById(id: string): Promise<ContentItem | null> {
   const client = getClient();

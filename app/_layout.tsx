@@ -15,10 +15,13 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Colors from '../constants/Colors';
 import useSettingsStore from '../store/useSettingsStore';
+import useAuthStore from '../store/useAuthStore';
 import SessionOverlay from '../components/ui/SessionOverlay';
 
 export default function RootLayout() {
     const loadSettings = useSettingsStore((s) => s.loadSettings);
+    const initializeAuth = useAuthStore((s) => s.initialize);
+    const authIsLoading = useAuthStore((s) => s.isLoading);
 
     const [fontsLoaded] = useFonts({
         Inter_400Regular,
@@ -28,9 +31,10 @@ export default function RootLayout() {
 
     useEffect(() => {
         loadSettings();
+        initializeAuth();
     }, []);
 
-    if (!fontsLoaded) {
+    if (!fontsLoaded || authIsLoading) {
         return (
             <View style={styles.loading}>
                 <ActivityIndicator size="large" color={Colors.parent.primary} />
