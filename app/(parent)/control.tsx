@@ -11,7 +11,12 @@ import Layout from '../../constants/Layout';
 import Header from '../../components/ui/Header';
 import useSettingsStore from '../../store/useSettingsStore';
 import useAuthStore from '../../store/useAuthStore';
+import useSessionStore from '../../store/useSessionStore';
+import { useRealtimeStore } from '../../store/useRealtimeStore';
+import { broadcastCommand } from '../../services/realtime/familyChannel';
+import { getClient } from '../../services/api/client';
 import { useCategoryPreferences } from '../../services/api/hooks';
+import { generateCommandId } from '../../services/utils/uuid';
 
 const KNOWN_CATEGORIES = ['Adventure', 'Educational', 'Fantasy', 'Science', 'Fun', 'Creative'];
 
@@ -32,8 +37,67 @@ export default function ControlScreen() {
     } = useSettingsStore();
 
     const children = useAuthStore((s) => s.children);
+    const parentData = useAuthStore((s) => s.parentData);
     const activeChild = children[0];
     const { preferences, isLoading: catLoading, toggleCategory } = useCategoryPreferences();
+
+    const { isChildOnline, channel } = useRealtimeStore();
+    const { isPaused, setPaused } = useSessionStore();
+
+    const [remainingMinutesLive, setRemainingMinutesLive] = React.useState(dailyTimeLimitMinutes);
+
+    const handlePauseToggle = () => {
+        if (!parentData || !activeChild || !channel) return;
+
+        const newPausedState = !isPaused;
+        const command = {
+            command_id: generateCommandId(),
+            command_type: (newPausedState ? 'pause' : 'resume') as 'pause' | 'resume',
+            sender_id: parentData.id,
+            child_id: activeChild.id,
+            payload: {},
+            created_at: new Date().toISOString()
+        };
+
+        // 1. Broadcast
+        broadcastCommand(channel, command);
+
+        // 2. Persist to DB
+        getClient().from('realtime_commands').insert({
+            id: command.command_id,
+            family_id: parentData.familyId,
+            sender_id: parentData.id,
+            child_id: activeChild.id,
+            command_type: command.command_type,
+            payload: command.payload
+        }).then();
+
+        // 3. Update local state
+        setPaused(newPausedState);
+    };
+
+    const handleTimeUpdate = () => {
+        if (!parentData || !activeChild || !channel) return;
+
+        const command = {
+            command_id: generateCommandId(),
+            command_type: 'time_update' as const,
+            sender_id: parentData.id,
+            child_id: activeChild.id,
+            payload: { remaining_minutes: remainingMinutesLive },
+            created_at: new Date().toISOString()
+        };
+
+        broadcastCommand(channel, command);
+        getClient().from('realtime_commands').insert({
+            id: command.command_id,
+            family_id: parentData.familyId,
+            sender_id: parentData.id,
+            child_id: activeChild.id,
+            command_type: command.command_type,
+            payload: command.payload
+        }).then();
+    };
 
     const ControlItem = ({ icon, title, subtitle, value, onValueChange, type = 'switch' }: any) => (
         <View style={styles.controlItem}>
@@ -70,6 +134,24 @@ export default function ControlScreen() {
             <Header showLock={false} title="Control Center" />
             
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+                <View style={styles.statusSection}>
+                    <View style={styles.statusRow}>
+                        <View style={[styles.statusDot, { backgroundColor: isChildOnline ? '#4CAF50' : '#F44336' }]} />
+                        <Text style={styles.statusText}>{isChildOnline ? 'Child Online' : 'Child Offline'}</Text>
+                    </View>
+                    
+                    <TouchableOpacity 
+                        style={[styles.pauseButton, { backgroundColor: isPaused ? '#4CAF50' : '#FF6B6B' }]}
+                        onPress={handlePauseToggle}
+                        disabled={!channel}
+                    >
+                        <Ionicons name={isPaused ? 'play' : 'pause'} size={24} color="white" />
+                        <Text style={styles.pauseButtonText}>
+                            {isPaused ? 'Resume Session' : 'Pause Session Now'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Time & Sessions</Text>
                     <View style={styles.card}>
@@ -90,6 +172,22 @@ export default function ControlScreen() {
                             onValueChange={setSessionsPerDay}
                             type="stepper"
                         />
+                        <View style={styles.divider} />
+                        <ControlItem 
+                            icon="hourglass-outline" 
+                            title="Remaining Minutes (Live)" 
+                            subtitle="Instantly update child's remaining time" 
+                            value={remainingMinutesLive} 
+                            onValueChange={setRemainingMinutesLive}
+                            type="stepper"
+                        />
+                        <TouchableOpacity 
+                            style={styles.sendButton} 
+                            onPress={handleTimeUpdate}
+                            disabled={!channel}
+                        >
+                            <Text style={styles.sendButtonText}>Send Time Update</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -142,7 +240,7 @@ export default function ControlScreen() {
                             ) : (
                                 KNOWN_CATEGORIES.map((category, i) => {
                                     const pref = preferences.find(
-                                        (p: any) => p.child_id === activeChild.id && p.category === category,
+                                        (p) => p.child_id === activeChild.id && p.category === category,
                                     );
                                     const isAllowed = pref?.is_allowed ?? true;
                                     return (
@@ -152,12 +250,12 @@ export default function ControlScreen() {
                                                 <View style={styles.controlIconCircle}>
                                                     <Ionicons
                                                         name={
-                                                            (category === 'Adventure' ? 'compass-outline' :
+                                                            category === 'Adventure' ? 'compass-outline' :
                                                             category === 'Educational' ? 'school-outline' :
                                                             category === 'Fantasy' ? 'rainbow-outline' :
                                                             category === 'Science' ? 'flask-outline' :
                                                             category === 'Fun' ? 'happy-outline' :
-                                                            'bulb-outline') as any
+                                                            'bulb-outline'
                                                         }
                                                         size={22}
                                                         color={Colors.parent.primary}
@@ -171,7 +269,29 @@ export default function ControlScreen() {
                                                 </View>
                                                 <Switch
                                                     value={isAllowed}
-                                                    onValueChange={(val) => { toggleCategory(activeChild.id, category, val); }}
+                                                    onValueChange={(val) => { 
+                                                        toggleCategory(activeChild.id, category, val); 
+                                                        
+                                                        if (channel && parentData) {
+                                                            const command = {
+                                                                command_id: generateCommandId(),
+                                                                command_type: 'category_block' as const,
+                                                                sender_id: parentData.id,
+                                                                child_id: activeChild.id,
+                                                                payload: { category: category, is_allowed: val },
+                                                                created_at: new Date().toISOString()
+                                                            };
+                                                            broadcastCommand(channel, command);
+                                                            getClient().from('realtime_commands').insert({
+                                                                id: command.command_id,
+                                                                family_id: parentData.familyId,
+                                                                sender_id: parentData.id,
+                                                                child_id: activeChild.id,
+                                                                command_type: command.command_type,
+                                                                payload: command.payload
+                                                            }).then();
+                                                        }
+                                                    }}
                                                     trackColor={{ false: '#767577', true: Colors.parent.primary }}
                                                     thumbColor={Colors.shared.white}
                                                 />
@@ -270,6 +390,55 @@ const styles = StyleSheet.create({
     loadingText: {
         ...Typography.parent.body,
         color: Colors.parent.textSecondary,
+    },
+
+    statusSection: {
+        marginBottom: Layout.spacing.xl,
+        backgroundColor: Colors.parent.surface,
+        borderRadius: Layout.radius.xl,
+        padding: Layout.spacing.lg,
+        borderWidth: 1,
+        borderColor: Colors.parent.border,
+    },
+    statusRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Layout.spacing.md,
+    },
+    statusDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        marginRight: 8,
+    },
+    statusText: {
+        ...Typography.parent.body,
+        fontWeight: '600',
+    },
+    pauseButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: Layout.spacing.md,
+        borderRadius: Layout.radius.lg,
+        gap: 10,
+    },
+    pauseButtonText: {
+        color: 'white',
+        ...Typography.parent.body,
+        fontWeight: 'bold',
+    },
+    sendButton: {
+        backgroundColor: Colors.parent.primary,
+        margin: Layout.spacing.lg,
+        padding: Layout.spacing.md,
+        borderRadius: Layout.radius.lg,
+        alignItems: 'center',
+    },
+    sendButtonText: {
+        color: 'white',
+        ...Typography.parent.body,
+        fontWeight: 'bold',
     },
 
     infoBox: {

@@ -1,9 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { ContentItem, ContentType, CategoryPreference, AgeGroup, ApiResponse } from './types';
+import type { ContentItem, ContentType, CategoryPreference, AgeGroup } from './types';
 import { signInWithOtp, verifyOtp, logout as authLogout, generateFamilyCode, redeemFamilyCode, verifyParentPin, updateParentPin } from '../auth';
 import useAuthStore from '../../store/useAuthStore';
-import useDataStore from '../../store/useDataStore';
-import { getClient } from './client';
 
 export { useStories } from './stories';
 export { useGames } from './games';

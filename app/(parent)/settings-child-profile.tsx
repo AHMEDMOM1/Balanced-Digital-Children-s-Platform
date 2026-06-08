@@ -48,10 +48,10 @@ export default function SettingsChildProfileScreen() {
     const { preferences, isLoading, toggleCategory } = useCategoryPreferences();
 
     // Derive toggle states from preferences
-    const storyCategories = preferences.filter((p: any) => p.is_allowed && ['Adventure', 'Fantasy', 'Education', 'Mystery', 'Science', 'Slice of Life'].includes(p.category));
-    const gameCategories = preferences.filter((p: any) => p.is_allowed && ['Puzzles', 'Education', 'Creative', 'Music'].includes(p.category));
-    const videoCategories = preferences.filter((p: any) => p.is_allowed && ['Science', 'Music', 'Health', 'Education', 'Creative'].includes(p.category));
-    const creativeCategories = preferences.filter((p: any) => p.is_allowed && ['Art', 'Building', 'Music', 'Writing'].includes(p.category));
+    const storyCategories = preferences.filter((p) => p.is_allowed && ['Adventure', 'Fantasy', 'Education', 'Mystery', 'Science', 'Slice of Life'].includes(p.category));
+    const gameCategories = preferences.filter((p) => p.is_allowed && ['Puzzles', 'Education', 'Creative', 'Music'].includes(p.category));
+    const videoCategories = preferences.filter((p) => p.is_allowed && ['Science', 'Music', 'Health', 'Education', 'Creative'].includes(p.category));
+    const creativeCategories = preferences.filter((p) => p.is_allowed && ['Art', 'Building', 'Music', 'Writing'].includes(p.category));
 
     const storiesEnabled = storyCategories.length > 0;
     const gamesEnabled = gameCategories.length > 0;
