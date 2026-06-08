@@ -1,241 +1,411 @@
 /**
- * Parent Reports Screen — SafePlay Timer Analytics
- * Detailed usage reports with charts and trend analysis.
+ * app/(parent)/reports.tsx — Phase 3
+ * Live Reports & Charts screen using real data from Supabase.
+ * Replaces all static placeholder values with hooks from services/api/reports.ts
  */
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  View, Text, ScrollView, StyleSheet, SafeAreaView,
+  TouchableOpacity, ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import Header from '../../components/ui/Header';
+import ComparisonView from '../../components/reports/ComparisonView';
+import useAuthStore from '../../store/useAuthStore';
+import { useDailyStats, useLiveTodayStats } from '../../services/api/reports';
+import { DailyStats, ReportRange } from '../../services/api/types';
+import { captureAndShare } from '../../services/export/captureReport';
 
-export default function ReportsScreen() {
-    return (
-        <SafeAreaView style={styles.safe}>
-            <Header showLock={false} title="Reports" />
-            
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-                <View style={styles.pageHeader}>
-                    <Text style={styles.pageTitle}>Weekly Report</Text>
-                    <View style={styles.dateSelector}>
-                        <Text style={styles.dateText}>May 01 - May 07</Text>
-                        <Ionicons name="chevron-down" size={16} color={Colors.parent.primary} />
-                    </View>
-                </View>
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-                {/* ── Summary Stats ── */}
-                <View style={styles.summaryRow}>
-                    <View style={styles.summaryCard}>
-                        <View style={styles.cardHeader}>
-                            <Ionicons name="stats-chart" size={18} color={Colors.parent.primary} />
-                            <Text style={styles.cardLabel}>Total Time</Text>
-                        </View>
-                        <Text style={styles.cardValue}>14h 30m</Text>
-                        <View style={styles.trendRow}>
-                            <Ionicons name="arrow-up-circle" size={14} color={Colors.shared.error} />
-                            <Text style={[styles.trendText, { color: Colors.shared.error }]}>+12% vs last week</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.summaryCard}>
-                        <View style={styles.cardHeader}>
-                            <Ionicons name="today" size={18} color={Colors.parent.primary} />
-                            <Text style={styles.cardLabel}>Daily Avg</Text>
-                        </View>
-                        <Text style={styles.cardValue}>2h 05m</Text>
-                        <View style={styles.trendRow}>
-                            <Ionicons name="arrow-down-circle" size={14} color={Colors.shared.success} />
-                            <Text style={[styles.trendText, { color: Colors.shared.success }]}>-5% vs last week</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* ── Usage Chart Placeholder ── */}
-                <View style={styles.chartCard}>
-                    <Text style={styles.sectionTitle}>Usage History</Text>
-                    <View style={styles.barChart}>
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
-                            <View key={day} style={styles.barContainer}>
-                                <LinearGradient
-                                    colors={['#9D7CFF', Colors.parent.primary]}
-                                    style={[styles.bar, { height: [60, 90, 40, 110, 70, 120, 80][i] }]}
-                                />
-                                <Text style={styles.barLabel}>{day}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* ── Activity Breakdown ── */}
-                <View style={styles.breakdownCard}>
-                    <Text style={styles.sectionTitle}>Activity Breakdown</Text>
-                    
-                    <BreakdownItem title="Brain Games" value="5h 20m" percent={0.9} color="#FF6B6B" />
-                    <BreakdownItem title="StoryTime" value="4h 10m" percent={0.7} color="#7C5CFC" />
-                    <BreakdownItem title="Creative Zone" value="3h 15m" percent={0.55} color="#FFB800" />
-                    <BreakdownItem title="Videos" value="1h 45m" percent={0.3} color="#494551" />
-                </View>
-            </ScrollView>
-        </SafeAreaView>
-    );
+function formatSeconds(seconds: number): string {
+  if (!seconds) return '0m';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
 }
 
-function BreakdownItem({ title, value, percent, color }: any) {
-    return (
-        <View style={styles.breakdownItem}>
-            <View style={styles.breakdownTextRow}>
-                <Text style={styles.breakdownTitle}>{title}</Text>
-                <Text style={styles.breakdownValue}>{value}</Text>
-            </View>
-            <View style={styles.progressBg}>
-                <View style={[styles.progressFill, { width: `${percent * 100}%`, backgroundColor: color }]} />
-            </View>
+function calcDailyAvg(stats: DailyStats[], range: ReportRange): number {
+  if (!stats || stats.length === 0) return 0;
+  const total = stats.reduce((sum, s) => sum + s.total_seconds, 0);
+  const days = range === 'today' ? 1 : range === 'week' ? 7 : 30;
+  return Math.round(total / days);
+}
+
+const RANGES: { label: string; value: ReportRange }[] = [
+  { label: 'Today', value: 'today' },
+  { label: 'Week', value: 'week' },
+  { label: 'Month', value: 'month' },
+];
+
+const CATEGORY_CONFIG = [
+  { key: 'stories_seconds' as keyof DailyStats, label: 'StoryTime', color: '#7C5CFC' },
+  { key: 'games_seconds'   as keyof DailyStats, label: 'Brain Games', color: '#FF6B6B' },
+  { key: 'creative_seconds'as keyof DailyStats, label: 'Creative Zone', color: '#FFB800' },
+  { key: 'videos_seconds'  as keyof DailyStats, label: 'Videos', color: '#494551' },
+];
+
+// ─── Main Screen ─────────────────────────────────────────────────────────────
+
+export default function ReportsScreen() {
+  const [range, setRange] = useState<ReportRange>('week');
+  const children = useAuthStore((s) => s.children);
+  const activeChild = children.find((c) => c.is_active) ?? children[0] ?? null;
+  const childId = activeChild?.id ?? null;
+  const [showComparison, setShowComparison] = useState(false);
+  const reportViewRef = useRef<View>(null!);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const { data: stats, isLoading, error } = useDailyStats(childId, range);
+  const { todayStats, isLive } = useLiveTodayStats(childId);
+
+  // Merge live today data if range is 'today'
+  const displayStats = range === 'today' && todayStats ? [todayStats] : (stats ?? []);
+
+  const totalSeconds = displayStats.reduce((sum, s) => sum + s.total_seconds, 0);
+  const dailyAvg = calcDailyAvg(displayStats, range);
+
+  const categoryTotals = CATEGORY_CONFIG.map((cat) => ({
+    ...cat,
+    value: displayStats.reduce((sum, s) => sum + ((s[cat.key] as number) || 0), 0),
+  }));
+  const maxCategory = Math.max(...categoryTotals.map((c) => c.value), 1);
+
+  // Bar chart data (last 7 days for week, last 30 for month, 1 for today)
+  const barData = displayStats.slice(-7);
+  const maxBar = Math.max(...barData.map((s) => s.total_seconds), 1);
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <Header showLock={false} title="Reports" />
+
+      {/* ── Export Button ── */}
+      <TouchableOpacity
+        style={styles.exportBtn}
+        onPress={async () => {
+          setIsExporting(true);
+          await captureAndShare(reportViewRef);
+          setIsExporting(false);
+        }}
+        disabled={isExporting}
+      >
+        {isExporting
+          ? <ActivityIndicator size="small" color={Colors.parent.primary} />
+          : <Ionicons name="share-outline" size={20} color={Colors.parent.primary} />
+        }
+        <Text style={styles.exportBtnText}>{isExporting ? 'Exporting...' : 'Export'}</Text>
+      </TouchableOpacity>
+
+      <View ref={reportViewRef} collapsable={false}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+
+        {/* ── Time Range Picker ── */}
+        <View style={styles.rangeRow}>
+          {RANGES.map((r) => (
+            <TouchableOpacity
+              key={r.value}
+              style={[styles.rangeBtn, range === r.value && styles.rangeBtnActive]}
+              onPress={() => setRange(r.value)}
+            >
+              <Text style={[styles.rangeBtnText, range === r.value && styles.rangeBtnTextActive]}>
+                {r.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-    );
+
+        {/* ── Live Indicator ── */}
+        {isLive && range === 'today' && (
+          <View style={styles.liveBadge}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>Live</Text>
+          </View>
+        )}
+
+        {/* ── Loading ── */}
+        {isLoading && (
+          <View style={styles.stateCenter}>
+            <ActivityIndicator size="large" color={Colors.parent.primary} />
+            <Text style={styles.stateText}>Loading report data...</Text>
+          </View>
+        )}
+
+        {/* ── Error ── */}
+        {error && !isLoading && (
+          <View style={styles.stateCenter}>
+            <Ionicons name="cloud-offline-outline" size={48} color={Colors.parent.textSecondary} />
+            <Text style={styles.stateText}>Could not load reports. Check your connection.</Text>
+          </View>
+        )}
+
+        {/* ── Empty State ── */}
+        {!isLoading && !error && displayStats.length === 0 && (
+          <View style={styles.stateCenter}>
+            <Ionicons name="bar-chart-outline" size={48} color={Colors.parent.textSecondary} />
+            <Text style={styles.stateText}>No activity recorded for this period.</Text>
+          </View>
+        )}
+
+        {/* ── Data Views ── */}
+        {!isLoading && !error && displayStats.length > 0 && (
+          <>
+            {/* ── Summary Stats ── */}
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryCard}>
+                <View style={styles.cardHeader}>
+                  <Ionicons name="stats-chart" size={18} color={Colors.parent.primary} />
+                  <Text style={styles.cardLabel}>Total Time</Text>
+                </View>
+                <Text style={styles.cardValue}>{formatSeconds(totalSeconds)}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <View style={styles.cardHeader}>
+                  <Ionicons name="today" size={18} color={Colors.parent.primary} />
+                  <Text style={styles.cardLabel}>Daily Avg</Text>
+                </View>
+                <Text style={styles.cardValue}>{formatSeconds(dailyAvg)}</Text>
+              </View>
+            </View>
+
+            {/* ── Bar Chart ── */}
+            <View style={styles.chartCard}>
+              <Text style={styles.sectionTitle}>Usage History</Text>
+              <View style={styles.barChart}>
+                {barData.map((day) => {
+                  const heightPct = maxBar > 0 ? (day.total_seconds / maxBar) : 0;
+                  const barHeight = Math.max(4, Math.round(heightPct * 120));
+                  const label = range === 'today'
+                    ? 'Today'
+                    : new Date(day.stat_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+                  return (
+                    <View key={day.stat_date} style={styles.barContainer}>
+                      <LinearGradient
+                        colors={['#9D7CFF', Colors.parent.primary]}
+                        style={[styles.bar, { height: barHeight }]}
+                      />
+                      <Text style={styles.barLabel}>{label}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* ── Category Breakdown ── */}
+            <View style={styles.breakdownCard}>
+              <Text style={styles.sectionTitle}>Activity Breakdown</Text>
+              {categoryTotals.map((cat) => (
+                <View key={cat.key} style={styles.breakdownItem}>
+                  <View style={styles.breakdownTextRow}>
+                    <Text style={styles.breakdownTitle}>{cat.label}</Text>
+                    <Text style={styles.breakdownValue}>{formatSeconds(cat.value)}</Text>
+                  </View>
+                  <View style={styles.progressBg}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${(cat.value / maxCategory) * 100}%`,
+                          backgroundColor: cat.color,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+        {/* ── Child Comparison (visible only if parent has 2+ children) ── */}
+        {children.length >= 2 && (
+          <>
+            <TouchableOpacity
+              style={styles.compareToggle}
+              onPress={() => setShowComparison((prev) => !prev)}
+            >
+              <Ionicons
+                name={showComparison ? 'close-circle-outline' : 'git-compare-outline'}
+                size={20}
+                color={Colors.parent.primary}
+              />
+              <Text style={styles.compareToggleText}>
+                {showComparison ? 'Hide Comparison' : 'Compare Children'}
+              </Text>
+            </TouchableOpacity>
+            {showComparison && children[1] && (
+              <ComparisonView
+                childAId={children[0].id}
+                childBId={children[1].id}
+                childAName={children[0].name}
+                childBName={children[1].name}
+              />
+            )}
+          </>
+        )}
+      </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: Colors.parent.background },
-    container: { flex: 1 },
-    content: {
-        paddingHorizontal: Layout.screen.paddingHorizontal,
-        paddingTop: Layout.spacing.xl,
-        paddingBottom: Layout.spacing.xxl,
-    },
-    pageHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Layout.spacing.xl,
-    },
-    pageTitle: {
-        ...Typography.parent.title,
-        fontSize: 22,
-        color: Colors.parent.primary,
-    },
-    dateSelector: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: Colors.parent.surface,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: Layout.radius.md,
-        borderWidth: 1,
-        borderColor: Colors.parent.border,
-    },
-    dateText: {
-        ...Typography.parent.caption,
-        color: Colors.parent.textSecondary,
-        fontWeight: '600',
-    },
-    summaryRow: {
-        flexDirection: 'row',
-        gap: Layout.spacing.md,
-        marginBottom: Layout.spacing.xl,
-    },
-    summaryCard: {
-        flex: 1,
-        backgroundColor: Colors.parent.surface,
-        borderRadius: Layout.radius.lg,
-        padding: Layout.spacing.md,
-        borderWidth: 1,
-        borderColor: Colors.parent.border,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 8,
-    },
-    cardLabel: {
-        ...Typography.parent.caption,
-        color: Colors.parent.textSecondary,
-    },
-    cardValue: {
-        ...Typography.parent.title,
-        fontSize: 20,
-        marginBottom: 4,
-    },
-    trendRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    trendText: {
-        ...Typography.parent.caption,
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    chartCard: {
-        backgroundColor: Colors.parent.surface,
-        borderRadius: Layout.radius.xl,
-        padding: Layout.spacing.lg,
-        borderWidth: 1,
-        borderColor: Colors.parent.border,
-        marginBottom: Layout.spacing.xl,
-    },
-    sectionTitle: {
-        ...Typography.parent.subtitle,
-        color: Colors.parent.textPrimary,
-        marginBottom: Layout.spacing.xl,
-    },
-    barChart: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'flex-end',
-        height: 150,
-        paddingTop: Layout.spacing.md,
-    },
-    barContainer: {
-        flex: 1,
-        alignItems: 'center',
-        gap: 8,
-    },
-    bar: {
-        width: 28,
-        borderRadius: 8,
-        opacity: 0.9,
-    },
-    barLabel: {
-        ...Typography.parent.caption,
-        fontSize: 10,
-        color: Colors.parent.textSecondary,
-    },
-    breakdownCard: {
-        backgroundColor: Colors.parent.surface,
-        borderRadius: Layout.radius.xl,
-        padding: Layout.spacing.lg,
-        borderWidth: 1,
-        borderColor: Colors.parent.border,
-    },
-    breakdownItem: {
-        marginBottom: Layout.spacing.lg,
-    },
-    breakdownTextRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
-    },
-    breakdownTitle: {
-        ...Typography.parent.body,
-        fontWeight: '600',
-        color: Colors.parent.textPrimary,
-    },
-    breakdownValue: {
-        ...Typography.parent.body,
-        color: Colors.parent.textSecondary,
-    },
-    progressBg: {
-        height: 16,
-        backgroundColor: '#F2ECF4',
-        borderRadius: 8,
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        borderRadius: 8,
-    },
+  safe: { flex: 1, backgroundColor: Colors.parent.background },
+  container: { flex: 1 },
+  content: {
+    paddingHorizontal: Layout.screen.paddingHorizontal,
+    paddingTop: Layout.spacing.lg,
+    paddingBottom: Layout.spacing.xxl,
+  },
+  rangeRow: {
+    flexDirection: 'row',
+    backgroundColor: Colors.parent.surface,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+  },
+  rangeBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  rangeBtnActive: {
+    backgroundColor: Colors.parent.primary,
+  },
+  rangeBtnText: {
+    ...Typography.parent.caption,
+    fontWeight: '600',
+    color: Colors.parent.textSecondary,
+  },
+  rangeBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-end',
+    marginBottom: 8,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#22C55E',
+  },
+  liveText: {
+    ...Typography.parent.caption,
+    color: '#22C55E',
+    fontWeight: '700',
+  },
+  stateCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 16,
+  },
+  stateText: {
+    ...Typography.parent.body,
+    color: Colors.parent.textSecondary,
+    textAlign: 'center',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: Layout.spacing.md,
+    marginBottom: Layout.spacing.xl,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: Colors.parent.surface,
+    borderRadius: Layout.radius.lg,
+    padding: Layout.spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  cardLabel: { ...Typography.parent.caption, color: Colors.parent.textSecondary },
+  cardValue: { ...Typography.parent.title, fontSize: 20, marginBottom: 4 },
+  chartCard: {
+    backgroundColor: Colors.parent.surface,
+    borderRadius: Layout.radius.xl,
+    padding: Layout.spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+    marginBottom: Layout.spacing.xl,
+  },
+  sectionTitle: {
+    ...Typography.parent.subtitle,
+    color: Colors.parent.textPrimary,
+    marginBottom: Layout.spacing.xl,
+  },
+  barChart: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 140,
+  },
+  barContainer: { flex: 1, alignItems: 'center', gap: 8 },
+  bar: { width: 28, borderRadius: 8, opacity: 0.9 },
+  barLabel: { ...Typography.parent.caption, fontSize: 10, color: Colors.parent.textSecondary },
+  breakdownCard: {
+    backgroundColor: Colors.parent.surface,
+    borderRadius: Layout.radius.xl,
+    padding: Layout.spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+  },
+  breakdownItem: { marginBottom: Layout.spacing.lg },
+  breakdownTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  breakdownTitle: { ...Typography.parent.body, fontWeight: '600', color: Colors.parent.textPrimary },
+  breakdownValue: { ...Typography.parent.body, color: Colors.parent.textSecondary },
+  progressBg: { height: 16, backgroundColor: '#F2ECF4', borderRadius: 8, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 8 },
+  compareToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+    backgroundColor: Colors.parent.surface,
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  compareToggleText: {
+    ...Typography.parent.body,
+    fontWeight: '600',
+    color: Colors.parent.primary,
+  },
+  exportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-end',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+    backgroundColor: Colors.parent.surface,
+    marginHorizontal: Layout.screen.paddingHorizontal,
+    marginBottom: 4,
+  },
+  exportBtnText: {
+    ...Typography.parent.caption,
+    fontWeight: '700',
+    color: Colors.parent.primary,
+  },
 });

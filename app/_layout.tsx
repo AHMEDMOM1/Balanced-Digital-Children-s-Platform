@@ -13,6 +13,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Colors from '../constants/Colors';
 import useSettingsStore from '../store/useSettingsStore';
 import useAuthStore from '../store/useAuthStore';
@@ -43,17 +44,19 @@ export default function RootLayout() {
     }
 
     return (
-        <SafeAreaProvider>
-            <StatusBar style="dark" />
-            <Stack
-                screenOptions={{
-                    headerShown: false,
-                    animation: 'fade',
-                }}
-            />
-            {/* Global Overlay for Session/Time Control */}
-            <SessionOverlay />
-        </SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaProvider>
+                <StatusBar style="dark" />
+                <Stack
+                    screenOptions={{
+                        headerShown: false,
+                        animation: 'fade',
+                    }}
+                />
+                {/* Global Overlay for Session/Time Control */}
+                <SessionOverlay />
+            </SafeAreaProvider>
+        </GestureHandlerRootView>
     );
 }
 
