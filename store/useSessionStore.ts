@@ -3,20 +3,31 @@
  * Tracks active session time, completion, and session count for the day.
  */
 import { create } from 'zustand';
+import { sessionManager } from '../services/resilience/sessionManager';
+import { eventLogger } from '../services/resilience/eventLogger';
+import { timeSync } from '../services/resilience/timeSync';
+import useAuthStore from './useAuthStore';
+import type { RealtimeCommand } from '../services/realtime/types';
+
+export type SessionStatus = 'active' | 'paused' | 'ended';
 
 export interface SessionState {
-    // ── Session Tracking ───────────────────────
     isSessionActive: boolean;
-    sessionStartTime: number | null;       // timestamp
+    sessionStartTime: number | null;
     elapsedSeconds: number;
     sessionsUsedToday: number;
-    isPaused: boolean;                     // parent can pause remotely
-    remainingMinutes: number;              // child's remaining session time
-    isPauseOverlayVisible: boolean;        // controls the pause overlay
-    lastTickAt: number | null;             // timestamp of last received heartbeat/tick
-    wasOffline: boolean;                   // flag for reconnection logic
+    isPaused: boolean;
+    remainingMinutes: number;
+    isPauseOverlayVisible: boolean;
+    lastTickAt: number | null;
+    wasOffline: boolean;
+    serverTimeOffset: number;
 
-    // ── Actions ────────────────────────────────
+    // Realtime command state (FR-007, FR-008, FR-011)
+    status: SessionStatus;
+    blockedCategories: string[];
+    processedCommandIds: Set<string>;
+
     startSession: () => void;
     endSession: () => void;
     updateElapsed: (seconds: number) => void;
@@ -26,6 +37,9 @@ export interface SessionState {
     updateRemainingMinutes: (minutes: number) => void;
     handleReconnect: () => void;
     setWasOffline: (offline: boolean) => void;
+    restoreFromSnapshot: () => Promise<void>;
+    applyServerTime: (serverTimestampMs: number) => void;
+    applyCommand: (cmd: RealtimeCommand) => void;
 }
 
 const useSessionStore = create<SessionState>((set, get) => ({
@@ -38,32 +52,68 @@ const useSessionStore = create<SessionState>((set, get) => ({
     isPauseOverlayVisible: false,
     lastTickAt: null,
     wasOffline: false,
+    serverTimeOffset: 0,
 
-    startSession: () =>
+    status: 'active' as SessionStatus,
+    blockedCategories: [],
+    processedCommandIds: new Set<string>(),
+
+    startSession: () => {
+        const now = Date.now();
+        timeSync.sync().then((serverMs) => {
+            set({ serverTimeOffset: serverMs - Date.now() });
+        }).catch(() => {});
         set({
             isSessionActive: true,
-            sessionStartTime: Date.now(),
+            sessionStartTime: now,
             elapsedSeconds: 0,
-            lastTickAt: Date.now(),
-        }),
+            lastTickAt: now,
+        });
+    },
 
-    endSession: () =>
+    endSession: () => {
+        const state = get();
+        sessionManager.clear();
+        eventLogger.log({
+            eventType: 'session_end',
+            success: true,
+            screen: 'session',
+            details: { action: 'end', total: state.elapsedSeconds },
+        });
         set((state) => ({
             isSessionActive: false,
             sessionStartTime: null,
             elapsedSeconds: 0,
             sessionsUsedToday: state.sessionsUsedToday + 1,
             lastTickAt: null,
-        })),
+        }));
+    },
 
     updateElapsed: (seconds: number) =>
         set({ elapsedSeconds: seconds }),
 
     tick: () =>
-        set((state) => ({ 
-            elapsedSeconds: state.elapsedSeconds + 1,
-            lastTickAt: Date.now()
-        })),
+        set((state) => {
+            const updated = {
+                elapsedSeconds: state.elapsedSeconds + 1,
+                lastTickAt: Date.now(),
+            };
+
+            if (updated.elapsedSeconds % 30 === 0) {
+                const childId = useAuthStore.getState().childData?.id ?? 'unknown';
+                sessionManager.save({
+                    childId,
+                    contentItemId: 'active',
+                    activityType: 'story',
+                    elapsedSeconds: updated.elapsedSeconds,
+                    sessionStartedAt: new Date(state.sessionStartTime ?? Date.now()).toISOString(),
+                    lastSavedAt: new Date().toISOString(),
+                    dailyLimitSeconds: state.remainingMinutes * 60,
+                });
+            }
+
+            return updated;
+        }),
 
     resetDaily: () =>
         set({
@@ -81,7 +131,7 @@ const useSessionStore = create<SessionState>((set, get) => ({
     setPaused: (paused: boolean) =>
         set({ 
             isPaused: paused,
-            isPauseOverlayVisible: paused
+            isPauseOverlayVisible: paused,
         }),
 
     updateRemainingMinutes: (minutes: number) => {
@@ -103,7 +153,82 @@ const useSessionStore = create<SessionState>((set, get) => ({
                 set({ elapsedSeconds: elapsedSeconds + missedSeconds });
             }
         }
-    }
+    },
+
+    restoreFromSnapshot: async () => {
+        const snapshot = await sessionManager.restore();
+        if (!snapshot) return;
+
+        set({
+            isSessionActive: true,
+            sessionStartTime: new Date(snapshot.sessionStartedAt).getTime(),
+            elapsedSeconds: snapshot.elapsedSeconds,
+            lastTickAt: Date.now(),
+            remainingMinutes: Math.ceil(snapshot.dailyLimitSeconds / 60),
+        });
+
+        eventLogger.log({
+            eventType: 'session_restore',
+            success: true,
+            screen: 'session',
+            details: { restoredElapsed: snapshot.elapsedSeconds },
+        });
+    },
+
+    applyServerTime: (serverTimestampMs: number) => {
+        const offset = serverTimestampMs - Date.now();
+        set({ serverTimeOffset: offset });
+    },
+
+    applyCommand: (cmd: RealtimeCommand) => {
+        const state = get();
+
+        // Idempotency: skip if already processed (FR-008)
+        if (state.processedCommandIds.has(cmd.command_id)) return;
+
+        const newIds = new Set(state.processedCommandIds);
+        newIds.add(cmd.command_id);
+
+        switch (cmd.command_type) {
+            case 'pause':
+                set({ status: 'paused', isPaused: true, isPauseOverlayVisible: true, processedCommandIds: newIds });
+                break;
+
+            case 'resume':
+                set({ status: 'active', isPaused: false, isPauseOverlayVisible: false, processedCommandIds: newIds });
+                break;
+
+            case 'force_end':
+                set({ status: 'ended', isSessionActive: false, processedCommandIds: newIds });
+                sessionManager.clear();
+                eventLogger.log({ eventType: 'session_end', success: true, screen: 'session', details: { action: 'force_end', command_id: cmd.command_id } });
+                break;
+
+            case 'time_update': {
+                const minutes: number = cmd.payload?.remaining_minutes ?? 0;
+                set({ remainingMinutes: minutes, processedCommandIds: newIds });
+                if (minutes <= 0) {
+                    set({ status: 'ended', isSessionActive: false });
+                    sessionManager.clear();
+                }
+                break;
+            }
+
+            case 'category_block': {
+                const category: string = cmd.payload?.category;
+                const isAllowed: boolean = cmd.payload?.is_allowed !== false;
+                const current = state.blockedCategories;
+                const updated = isAllowed
+                    ? current.filter((c) => c !== category)
+                    : current.includes(category) ? current : [...current, category];
+                set({ blockedCategories: updated, processedCommandIds: newIds });
+                break;
+            }
+
+            default:
+                set({ processedCommandIds: newIds });
+        }
+    },
 }));
 
 export default useSessionStore;

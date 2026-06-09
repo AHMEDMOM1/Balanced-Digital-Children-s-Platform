@@ -14,6 +14,7 @@ import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import Header from '../../components/ui/Header';
+import OfflineBadge from '../../components/ui/OfflineBadge';
 import ComparisonView from '../../components/reports/ComparisonView';
 import useAuthStore from '../../store/useAuthStore';
 import { useDailyStats, useLiveTodayStats } from '../../services/api/reports';
@@ -55,8 +56,9 @@ const CATEGORY_CONFIG = [
 export default function ReportsScreen() {
   const [range, setRange] = useState<ReportRange>('week');
   const children = useAuthStore((s) => s.children);
-  const activeChild = children.find((c) => c.is_active) ?? children[0] ?? null;
-  const childId = activeChild?.id ?? null;
+  const [selectedChildIndex, setSelectedChildIndex] = useState(0);
+  const selectedChild = children[selectedChildIndex] ?? children[0] ?? null;
+  const childId = selectedChild?.id ?? null;
   const [showComparison, setShowComparison] = useState(false);
   const reportViewRef = useRef<View>(null!);
   const [isExporting, setIsExporting] = useState(false);
@@ -84,6 +86,8 @@ export default function ReportsScreen() {
     <SafeAreaView style={styles.safe}>
       <Header showLock={false} title="Reports" />
 
+      <OfflineBadge lastSyncAt={null} />
+
       {/* ── Export Button ── */}
       <TouchableOpacity
         style={styles.exportBtn}
@@ -103,6 +107,24 @@ export default function ReportsScreen() {
 
       <View ref={reportViewRef} collapsable={false}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+
+        {/* ── Child Selector (visible only when parent has 2+ children) ── */}
+        {children.length > 1 && (
+          <View style={styles.childSelectorRow}>
+            <Ionicons name="person-outline" size={16} color={Colors.parent.textSecondary} />
+            {children.map((child, i) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[styles.childSelectorBtn, selectedChildIndex === i && styles.childSelectorBtnActive]}
+                onPress={() => setSelectedChildIndex(i)}
+              >
+                <Text style={[styles.childSelectorText, selectedChildIndex === i && styles.childSelectorTextActive]}>
+                  {child.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* ── Time Range Picker ── */}
         <View style={styles.rangeRow}>
@@ -407,5 +429,31 @@ const styles = StyleSheet.create({
     ...Typography.parent.caption,
     fontWeight: '700',
     color: Colors.parent.primary,
+  },
+  childSelectorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  childSelectorBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+    backgroundColor: Colors.parent.surface,
+  },
+  childSelectorBtnActive: {
+    backgroundColor: Colors.parent.primary,
+    borderColor: Colors.parent.primary,
+  },
+  childSelectorText: {
+    ...Typography.parent.caption,
+    fontWeight: '600',
+    color: Colors.parent.textSecondary,
+  },
+  childSelectorTextActive: {
+    color: '#FFFFFF',
   },
 });

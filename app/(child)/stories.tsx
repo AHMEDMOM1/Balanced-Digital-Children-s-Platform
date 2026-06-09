@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import OfflineBadge from '../../components/ui/OfflineBadge';
 import Header from '../../components/ui/Header';
 import EmptyState from '../../components/ui/EmptyState';
 import Colors from '../../constants/Colors';
@@ -40,6 +41,7 @@ export default function StoriesScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
             >
+                    <OfflineBadge lastSyncAt={null} />
                 {/* ── Hero Section ── */}
                 <View style={styles.heroSection}>
                     <Text style={styles.heroTitle}>Story Time!</Text>
@@ -284,3 +286,5 @@ const styles = StyleSheet.create({
         ...Typography.child.subtitle,
     },
 });
+
+

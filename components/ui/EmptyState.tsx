@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
+import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
 
 interface EmptyStateProps {
     emoji?: string;
@@ -25,8 +26,8 @@ export default function EmptyState({
             ) : (
                 <Text style={styles.emoji}>{emoji}</Text>
             )}
-            <Text style={styles.title}>{title}</Text>
-            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+            <Text style={[styles.title, getBiDiStyle(title), !isArabic(title) && { textAlign: 'center' }]}>{title}</Text>
+            {subtitle && <Text style={[styles.subtitle, getBiDiStyle(subtitle), !isArabic(subtitle) && { textAlign: 'center' }]}>{subtitle}</Text>}
         </View>
     );
 }
@@ -44,13 +45,13 @@ const styles = StyleSheet.create({
     title: {
         ...Typography.child.body,
         color: Colors.child.textSecondary,
-        textAlign: 'center',
+        alignSelf: 'stretch',
     },
     subtitle: {
         ...Typography.child.body,
         color: Colors.child.textSecondary,
-        textAlign: 'center',
         fontSize: 13,
         opacity: 0.8,
+        alignSelf: 'stretch',
     },
 });

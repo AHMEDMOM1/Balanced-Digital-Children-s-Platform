@@ -8,12 +8,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import DegradableAnimation from '../../components/ui/DegradableAnimation';
+import OfflineBadge from '../../components/ui/OfflineBadge';
 import Header from '../../components/ui/Header';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useCreative } from '../../services/api/creative';
 import EmptyState from '../../components/ui/EmptyState';
+import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
 
 const activityIcons: Record<string, string> = {
     'Art': 'color-palette',
@@ -26,6 +29,7 @@ const activityRoutes: Record<string, string> = {
     'Magic Canvas': '/(child)/creative-canvas',
     'Build-a-Bot Workshop': '/(child)/creative-bot',
     'Sticker World': '/(child)/creative-stickers',
+    'Story Creator': '/(child)/creative-story',
 };
 
 const activityColorStyles: Record<string, { bg: string; iconCircle: string; titleColor: string; border: string; glow: string }> = {
@@ -54,13 +58,25 @@ export default function CreativeScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
             >
+                    <OfflineBadge lastSyncAt={null} />
                 {/* ── Hero Section ── */}
-                <Animated.View entering={FadeInDown.duration(400)} style={styles.heroSection}>
-                    <Text style={styles.heroTitle}>Create & Imagine</Text>
-                    <Text style={styles.heroSubtitle}>
-                        Pick a tool and start bringing your ideas to life!
-                    </Text>
-                </Animated.View>
+                <DegradableAnimation
+                    staticFallback={
+                        <View style={styles.heroSection}>
+                            <Text style={styles.heroTitle}>Create & Imagine</Text>
+                            <Text style={styles.heroSubtitle}>
+                                Pick a tool and start bringing your ideas to life!
+                            </Text>
+                        </View>
+                    }
+                >
+                    <Animated.View entering={FadeInDown.duration(400)} style={styles.heroSection}>
+                        <Text style={styles.heroTitle}>Create & Imagine</Text>
+                        <Text style={styles.heroSubtitle}>
+                            Pick a tool and start bringing your ideas to life!
+                        </Text>
+                    </Animated.View>
+                </DegradableAnimation>
 
                 {/* ── Loading State ── */}
                 {isLoading && (
@@ -117,11 +133,11 @@ export default function CreativeScreen() {
                                         </View>
 
                                         <View style={styles.cardTextArea}>
-                                            <Text style={[styles.activityTitle, { color: cStyle.titleColor }]}>
+                                            <Text style={[styles.activityTitle, { color: cStyle.titleColor }, getBiDiStyle(activity.title)]}>
                                                 {activity.title}
                                             </Text>
                                             {activity.description && (
-                                                <Text style={styles.activityDesc}>{activity.description}</Text>
+                                                <Text style={[styles.activityDesc, getBiDiStyle(activity.description)]}>{activity.description}</Text>
                                             )}
                                         </View>
                                     </TouchableOpacity>
@@ -429,3 +445,5 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
 });
+
+

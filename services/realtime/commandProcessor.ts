@@ -1,6 +1,6 @@
 import { getClient } from '../api/client';
 import { RealtimeCommand } from './types';
-import { useSettingsStore } from '../../store/useSettingsStore';
+import useSettingsStore from '../../store/useSettingsStore';
 
 export function processCommand(
   command: RealtimeCommand, 

@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { ContentItem, ContentType, CategoryPreference, AgeGroup } from './types';
+import type { ContentItem, ContentType, CategoryPreference, AgeGroup, ApiResponse } from './types';
+import { getClient } from './client';
 import { signInWithOtp, verifyOtp, logout as authLogout, generateFamilyCode, redeemFamilyCode, verifyParentPin, updateParentPin } from '../auth';
 import useAuthStore from '../../store/useAuthStore';
+import useDataStore from '../../store/useDataStore';
 
-export { useStories } from './stories';
-export { useGames } from './games';
-export { useVideos } from './videos';
-export { useCreative } from './creative';
+export { useStories, useStory, logStoryActivity } from './stories';
+export { useGames, useGame, logGameActivity } from './games';
+export { useVideos, useVideo, logVideoActivity } from './videos';
+export { useCreative, useCreativeActivity, logCreativeActivity } from './creative';
 
 async function fetchContentById(id: string): Promise<ContentItem | null> {
   const client = getClient();

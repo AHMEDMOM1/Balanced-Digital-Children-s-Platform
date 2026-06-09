@@ -10,25 +10,30 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './client';
 import { DailyStats, ComparisonData, ReportRange, ApiResponse } from './types';
 import useAuthStore from '../../store/useAuthStore';
+import { cacheManager, TTL_HISTORICAL_MS } from '../resilience/cacheManager';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+// Use local YYYY-MM-DD so day boundaries match the child's timezone, not UTC
+function localDateString(d: Date): string {
+  return d.toLocaleDateString('en-CA'); // returns YYYY-MM-DD in local timezone
+}
+
 function getDateRange(range: ReportRange): { from: string; to: string } {
   const today = new Date();
-  const toISO = (d: Date) => d.toISOString().split('T')[0];
   if (range === 'today') {
-    const s = toISO(today);
+    const s = localDateString(today);
     return { from: s, to: s };
   }
   if (range === 'week') {
     const from = new Date(today);
     from.setDate(today.getDate() - 6);
-    return { from: toISO(from), to: toISO(today) };
+    return { from: localDateString(from), to: localDateString(today) };
   }
   // month
   const from = new Date(today);
   from.setDate(today.getDate() - 29);
-  return { from: toISO(from), to: toISO(today) };
+  return { from: localDateString(from), to: localDateString(today) };
 }
 
 // ─── Hook: useDailyStats ────────────────────────────────────────────────────
@@ -46,7 +51,22 @@ export function useDailyStats(
     if (!childId) return;
     setIsLoading(true);
     setError(null);
+
     const { from, to } = getDateRange(range);
+    const cacheKey = `daily_stats:${childId}:${range}:${from}:${to}`;
+
+    // Historical ranges (week/month) use 24h cache; 'today' is never cached
+    // (today is covered by useLiveTodayStats via Realtime subscription)
+    if (range !== 'today') {
+      const cached = await cacheManager.get<DailyStats[]>(cacheKey, { ttlMs: TTL_HISTORICAL_MS });
+      if (cached) {
+        setData(cached);
+        setIsOffline(false);
+        setIsLoading(false);
+        return;
+      }
+    }
+
     const { data: rows, error: err } = await supabase
       .from('daily_stats')
       .select('*')
@@ -56,11 +76,22 @@ export function useDailyStats(
       .order('stat_date', { ascending: true });
 
     if (err) {
-      setError(err.message);
-      setIsOffline(true);
+      // Serve stale cache on network failure rather than showing an error
+      const stale = await cacheManager.get<DailyStats[]>(cacheKey, { ttlMs: TTL_HISTORICAL_MS * 7 });
+      if (stale) {
+        setData(stale);
+        setIsOffline(true);
+      } else {
+        setError(err.message);
+        setIsOffline(true);
+      }
     } else {
-      setData(rows as DailyStats[]);
+      const result = rows as DailyStats[];
+      setData(result);
       setIsOffline(false);
+      if (range !== 'today') {
+        cacheManager.set(cacheKey, result).catch(() => {});
+      }
     }
     setIsLoading(false);
   }, [childId, range]);
@@ -90,10 +121,11 @@ export function useLiveTodayStats(childId: string | null): {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const subscriptionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLiveRef = useRef(false);
 
   const fetchToday = useCallback(async () => {
     if (!childId) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     const { data, error } = await supabase
       .from('daily_stats')
       .select('*')
@@ -144,6 +176,7 @@ export function useLiveTodayStats(childId: string | null): {
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
+            isLiveRef.current = true;
             setIsLive(true);
             stopPolling();
             if (subscriptionTimeoutRef.current) {
@@ -167,7 +200,7 @@ export function useLiveTodayStats(childId: string | null): {
 
     // If subscription not connected within 10 seconds, fall back to polling
     subscriptionTimeoutRef.current = setTimeout(() => {
-      if (!isLive && !pollingRef.current) {
+      if (!isLiveRef.current && !pollingRef.current) {
         startPolling();
       }
     }, 10000);

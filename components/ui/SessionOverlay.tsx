@@ -21,6 +21,7 @@ import Layout from '../../constants/Layout';
 import useSessionStore from '../../store/useSessionStore';
 import useSettingsStore from '../../store/useSettingsStore';
 import PinLock from './PinLock';
+import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MOON_SIZE = Math.min(SCREEN_WIDTH * 0.55, 260);
@@ -48,9 +49,7 @@ export default function SessionOverlay() {
     const noSessionsLeft = sessionsUsedToday >= sessionsPerDay;
     const isTimeUp =
         isSessionActive &&
-        (elapsedSeconds >= maxSessionDurationSeconds ||
-            noSessionsLeft ||
-            isPaused);
+        (elapsedSeconds >= maxSessionDurationSeconds || noSessionsLeft);
 
     // Global Timer
     useEffect(() => {
@@ -125,11 +124,11 @@ export default function SessionOverlay() {
                 </View>
 
                 {/* ─── Title ─── */}
-                <Text style={styles.title}>It's time to relax! 🌟</Text>
+                <Text style={[styles.title, getBiDiStyle("It's time to relax! 🌟"), !isArabic("It's time to relax! 🌟") && { textAlign: 'center' }]}>It's time to relax! 🌟</Text>
 
                 {/* ─── Suggestions Card ─── */}
                 <View style={styles.suggestionsCard}>
-                    <Text style={styles.suggestionsTitle}>How about we...</Text>
+                    <Text style={[styles.suggestionsTitle, getBiDiStyle("How about we...")]}>How about we...</Text>
 
                     <View style={styles.grid}>
                         <View style={styles.gridRow}>
@@ -231,7 +230,6 @@ const styles = StyleSheet.create({
     title: {
         ...Typography.child.hero,
         color: Colors.child.primary,
-        textAlign: 'center',
         marginBottom: Layout.spacing.xl,
         fontSize: 28,
     },

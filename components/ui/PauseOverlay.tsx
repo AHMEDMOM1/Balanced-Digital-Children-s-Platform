@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import useSessionStore from '../../store/useSessionStore';
+import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
 
 const PauseOverlay = () => {
   const isPauseOverlayVisible = useSessionStore((state) => state.isPauseOverlayVisible);
@@ -14,9 +15,9 @@ const PauseOverlay = () => {
       <View style={styles.overlay}>
         <View style={styles.content}>
           <Text style={styles.emoji}>🐻</Text>
-          <Text style={styles.titleAr}>وقت الراحة!</Text>
+          <Text style={[styles.titleAr, getBiDiStyle("وقت الراحة!"), !isArabic("وقت الراحة!") && { textAlign: 'center' }]}>وقت الراحة!</Text>
           <Text style={styles.titleEn}>Time for a break!</Text>
-          <Text style={styles.subtitle}>طلب منك أحد الوالدين التوقف مؤقتاً</Text>
+          <Text style={[styles.subtitle, getBiDiStyle("طلب منك أحد الوالدين التوقف مؤقتاً"), !isArabic("طلب منك أحد الوالدين التوقف مؤقتاً") && { textAlign: 'center' }]}>طلب منك أحد الوالدين التوقف مؤقتاً</Text>
         </View>
       </View>
     </TouchableWithoutFeedback>
@@ -47,8 +48,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: 'white',
     fontWeight: 'bold',
-    textAlign: 'center',
-    writingDirection: 'rtl',
   },
   titleEn: {
     fontSize: 20,
@@ -60,8 +59,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginTop: 16,
-    textAlign: 'center',
-    writingDirection: 'rtl',
   },
 });
 

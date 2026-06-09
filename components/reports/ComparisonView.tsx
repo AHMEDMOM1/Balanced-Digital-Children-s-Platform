@@ -11,6 +11,7 @@ import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useComparisonStats } from '../../services/api/reports';
 import { DailyStats } from '../../services/api/types';
+import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
 
 interface Props {
   childAId: string;
@@ -46,12 +47,12 @@ function renderCategoryBlock(stats: DailyStats[], label: string, color: string, 
     <View key={key} style={styles.catRow}>
       <View style={styles.catLabelRow}>
         <View style={[styles.catDot, { backgroundColor: color }]} />
-        <Text style={styles.catLabel}>{label}</Text>
+        <Text style={[styles.catLabel, getBiDiStyle(label)]}>{label}</Text>
       </View>
       <View style={styles.catBarBg}>
         <View style={[styles.catBarFill, { width: `${pct}%`, backgroundColor: color }]} />
       </View>
-      <Text style={styles.catValue}>{formatSeconds(val)}</Text>
+      <Text style={[styles.catValue, getBiDiStyle(formatSeconds(val)), !isArabic(formatSeconds(val)) && { textAlign: 'right' }]}>{formatSeconds(val)}</Text>
     </View>
   );
 }
@@ -74,7 +75,7 @@ export default function ComparisonView({ childAId, childBId, childAName, childBN
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Compare Children</Text>
+      <Text style={[styles.title, getBiDiStyle("Compare Children")]}>Compare Children</Text>
 
       {/* Range Toggle */}
       <View style={styles.rangeRow}>
@@ -106,24 +107,26 @@ export default function ComparisonView({ childAId, childBId, childAName, childBN
           {/* ── Total Time Bars ── */}
           <Text style={styles.sectionLabel}>Total Screen Time</Text>
           <View style={styles.childRow}>
-            <Text style={styles.childName}>{childAName}</Text>
+            <Text style={[styles.childName, getBiDiStyle(childAName)]}>{childAName}</Text>
             <View style={styles.barBg}>
               <View style={[styles.barFill, { width: `${(totalA / maxTotal) * 100}%`, backgroundColor: '#7C5CFC' }]} />
             </View>
-            <Text style={styles.childValue}>{formatSeconds(totalA)}</Text>
+            <Text style={[styles.childValue, getBiDiStyle(formatSeconds(totalA)), !isArabic(formatSeconds(totalA)) && { textAlign: 'right' }]}>{formatSeconds(totalA)}</Text>
           </View>
           <View style={styles.childRow}>
-            <Text style={styles.childName}>{childBName}</Text>
+            <Text style={[styles.childName, getBiDiStyle(childBName)]}>{childBName}</Text>
             <View style={styles.barBg}>
               <View style={[styles.barFill, { width: `${(totalB / maxTotal) * 100}%`, backgroundColor: '#FF6B6B' }]} />
             </View>
-            <Text style={styles.childValue}>{formatSeconds(totalB)}</Text>
+            <Text style={[styles.childValue, getBiDiStyle(formatSeconds(totalB)), !isArabic(formatSeconds(totalB)) && { textAlign: 'right' }]}>{formatSeconds(totalB)}</Text>
           </View>
 
           {/* ── Category Breakdown ── */}
           <Text style={styles.sectionLabel}>By Category</Text>
+          <Text style={[styles.childSectionLabel, getBiDiStyle(childAName)]}>{childAName}</Text>
           {CATEGORY_CONFIG.map((cat) => renderCategoryBlock(statsA, cat.label, cat.color, cat.key, maxCategory))}
           <View style={styles.childDivider} />
+          <Text style={[styles.childSectionLabel, getBiDiStyle(childBName)]}>{childBName}</Text>
           {CATEGORY_CONFIG.map((cat) => renderCategoryBlock(statsB, cat.label, cat.color, cat.key, maxCategory))}
         </>
       )}
@@ -159,13 +162,20 @@ const styles = StyleSheet.create({
   childName: { ...Typography.parent.body, fontWeight: '600', color: Colors.parent.textPrimary, width: 70 },
   barBg: { flex: 1, height: 20, backgroundColor: '#F2ECF4', borderRadius: 10, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 10 },
-  childValue: { ...Typography.parent.caption, color: Colors.parent.textSecondary, width: 52, textAlign: 'right' },
+  childValue: { ...Typography.parent.caption, color: Colors.parent.textSecondary, width: 52 },
   childDivider: { height: 1, backgroundColor: Colors.parent.border, marginVertical: 12 },
+  childSectionLabel: {
+    ...Typography.parent.caption,
+    fontWeight: '700',
+    color: Colors.parent.textPrimary,
+    marginBottom: 6,
+    marginTop: 2,
+  },
   catRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   catLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, width: 90 },
   catDot: { width: 8, height: 8, borderRadius: 4 },
   catLabel: { ...Typography.parent.caption, fontSize: 11, color: Colors.parent.textPrimary },
   catBarBg: { flex: 1, height: 12, backgroundColor: '#F2ECF4', borderRadius: 6, overflow: 'hidden' },
   catBarFill: { height: '100%', borderRadius: 6 },
-  catValue: { ...Typography.parent.caption, fontSize: 11, color: Colors.parent.textSecondary, width: 44, textAlign: 'right' },
+  catValue: { ...Typography.parent.caption, fontSize: 11, color: Colors.parent.textSecondary, width: 44 },
 });

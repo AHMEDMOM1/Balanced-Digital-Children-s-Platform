@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import DegradableAnimation from '../../components/ui/DegradableAnimation';
+import OfflineBadge from '../../components/ui/OfflineBadge';
 import Header from '../../components/ui/Header';
 import EmptyState from '../../components/ui/EmptyState';
 import Colors from '../../constants/Colors';
@@ -40,15 +42,29 @@ export default function GamesScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
             >
+                    <OfflineBadge lastSyncAt={null} />
                 {/* ── Hero Banner ── */}
-                <Animated.View entering={FadeInDown.duration(500)} style={styles.heroBanner}>
-                    <View style={styles.heroOverlay}>
-                        <Text style={styles.heroEmoji}>🎮🧩</Text>
-                    </View>
-                    <View style={styles.heroTextOverlay}>
-                        <Text style={styles.heroTitle}>Ready to Play?</Text>
-                    </View>
-                </Animated.View>
+                <DegradableAnimation
+                    staticFallback={
+                        <View style={styles.heroBanner}>
+                            <View style={styles.heroOverlay}>
+                                <Text style={styles.heroEmoji}>🎮🧩</Text>
+                            </View>
+                            <View style={styles.heroTextOverlay}>
+                                <Text style={styles.heroTitle}>Ready to Play?</Text>
+                            </View>
+                        </View>
+                    }
+                >
+                    <Animated.View entering={FadeInDown.duration(500)} style={styles.heroBanner}>
+                        <View style={styles.heroOverlay}>
+                            <Text style={styles.heroEmoji}>🎮🧩</Text>
+                        </View>
+                        <View style={styles.heroTextOverlay}>
+                            <Text style={styles.heroTitle}>Ready to Play?</Text>
+                        </View>
+                    </Animated.View>
+                </DegradableAnimation>
 
                 {/* ── Loading State ── */}
                 {isLoading && (
@@ -294,3 +310,5 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
+
+

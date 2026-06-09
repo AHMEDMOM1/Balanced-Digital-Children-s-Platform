@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import OfflineBadge from '../../components/ui/OfflineBadge';
 import Header from '../../components/ui/Header';
 import EmptyState from '../../components/ui/EmptyState';
 import Colors from '../../constants/Colors';
@@ -41,6 +42,7 @@ export default function VideosScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
             >
+                    <OfflineBadge lastSyncAt={null} />
                 {/* ── Category Header ── */}
                 <View style={styles.headerRow}>
                     <Text style={styles.headerTitle}>Videos</Text>
@@ -256,3 +258,5 @@ const styles = StyleSheet.create({
         color: '#765B00',
     },
 });
+
+

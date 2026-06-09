@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import useAuthStore from '../store/useAuthStore';
 import { useRealtimeStore } from '../store/useRealtimeStore';
 import useSessionStore from '../store/useSessionStore';
+import { connectivityManager } from '../services/resilience/connectivityManager';
+import { eventLogger } from '../services/resilience/eventLogger';
 import { 
   subscribeFamilyChannel, 
   unsubscribeFamilyChannel, 
@@ -22,6 +24,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   } = useRealtimeStore();
 
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const subscribedRef = useRef(false);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -52,40 +55,54 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
   }, [familyId]);
 
-  const startSubscription = useCallback(() => {
-    if (!familyId || !role) return;
+    const startSubscription = useCallback(() => {
+        if (!familyId || !role) return;
 
-    const handlers = {
-      onCommand: (cmd: any) => {
-        if (role === 'child') {
-          processCommand(cmd, useRealtimeStore, useSessionStore);
-        }
-      },
-      onHeartbeat: (hb: any) => {
-        if (role === 'parent') {
-          recordHeartbeat();
-        }
-      },
-      onAck: (ack: any) => {}
-    };
+        const handlers = {
+            onCommand: (cmd: any) => {
+                if (role === 'child') {
+                    processCommand(cmd, useRealtimeStore, useSessionStore);
+                }
+            },
+            onHeartbeat: (hb: any) => {
+                if (role === 'parent') {
+                    recordHeartbeat();
+                }
+            },
+            onAck: (ack: any) => {}
+        };
 
-    const channel = subscribeFamilyChannel(familyId, role, handlers);
-    channelRef.current = channel;
-    setChannel(channel);
+        const channel = subscribeFamilyChannel(familyId, role, handlers);
+        channelRef.current = channel;
+        setChannel(channel);
 
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        setConnected(true);
-        if (role === 'child') {
-          fetchUnackedCommands();
-        }
-      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-        setConnected(false);
-        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = setTimeout(startSubscription, 5000);
-      }
-    });
-  }, [familyId, role, recordHeartbeat, setConnected, setChannel, fetchUnackedCommands]);
+        channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                subscribedRef.current = true;
+                setConnected(true);
+                eventLogger.log({
+                    eventType: 'offline_transition',
+                    success: true,
+                    screen: 'realtime',
+                    details: { status: 'SUBSCRIBED' },
+                });
+                if (role === 'child') {
+                    fetchUnackedCommands();
+                }
+            } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                subscribedRef.current = false;
+                setConnected(false);
+                eventLogger.log({
+                    eventType: 'offline_transition',
+                    success: false,
+                    screen: 'realtime',
+                    details: { status },
+                });
+                if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+                reconnectTimeoutRef.current = setTimeout(startSubscription, connectivityManager.getReconnectionInterval());
+            }
+        });
+    }, [familyId, role, recordHeartbeat, setConnected, setChannel, fetchUnackedCommands]);
 
   useEffect(() => {
     if (!familyId || !role) return;
@@ -95,9 +112,10 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (role === 'child' && childData) {
       heartbeatIntervalRef.current = setInterval(() => {
-        if (channelRef.current && channelRef.current.status === 'SUBSCRIBED') {
+        const ch = channelRef.current;
+        if (ch && subscribedRef.current) {
           const sessionState = useSessionStore.getState();
-          broadcastHeartbeat(channelRef.current, {
+          broadcastHeartbeat(ch, {
             child_id: childData.id,
             timestamp: new Date().toISOString(),
             session_active: sessionState.isSessionActive,
@@ -116,7 +134,21 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }, 1000);
     }
 
+    const unsubBattery = connectivityManager.onBatterySaverChange((enabled) => {
+      eventLogger.log({
+        eventType: enabled ? 'battery_saver_enter' : 'battery_saver_exit',
+        success: true,
+        screen: 'realtime',
+      });
+      const ch = channelRef.current;
+      if (!ch || !subscribedRef.current) {
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = setTimeout(startSubscription, connectivityManager.getReconnectionInterval());
+      }
+    });
+
     return () => {
+      unsubBattery();
       if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
       if (presenceIntervalRef.current) clearInterval(presenceIntervalRef.current);
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);

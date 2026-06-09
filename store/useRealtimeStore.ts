@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RealtimeCommand } from '../../services/realtime/types';
+import { RealtimeCommand } from '../services/realtime/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface RealtimeState {
