@@ -45,8 +45,14 @@ yarn-error.*
 .vscode/
 .opencode/
 
+# build output
+build/
+
 # logs
 *.log
+
+# Windows
+Thumbs.db
 
 # AI & Planning Agents (Hidden from repo)
 .agents/

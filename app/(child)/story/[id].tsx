@@ -6,7 +6,7 @@
  * - Page dots progress indicator
  * - Floating close and audio buttons
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Colors from '../../../constants/Colors';
 import Typography from '../../../constants/Typography';
 import Layout from '../../../constants/Layout';
-import { useContentById } from '../../../services/api/hooks';
+import { useStory, logStoryActivity } from '../../../services/api/hooks';
+import useAuthStore from '../../../store/useAuthStore';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../../services/utils/bidi';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -43,7 +45,22 @@ export default function StoryScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const [pageIndex, setPageIndex] = useState(0);
-    const { data: content, isLoading, error } = useContentById(id as string);
+    const { data: content, isLoading, error } = useStory(id as string);
+    const childData = useAuthStore((s) => s.childData);
+    const mountTimeRef = useRef(Date.now());
+
+    useEffect(() => {
+        mountTimeRef.current = Date.now();
+        return () => {
+            if (childData?.id && id) {
+                logStoryActivity({
+                    childId: childData.id,
+                    storyId: id as string,
+                    durationSeconds: Math.floor((Date.now() - mountTimeRef.current) / 1000),
+                }).catch(() => {});
+            }
+        };
+    }, [childData?.id, id]);
 
     const storyTitle = content?.title || 'Story Time';
     const pages = getStoryPages(storyTitle);
@@ -95,7 +112,7 @@ export default function StoryScreen() {
 
                         <View style={styles.titlePill}>
                             <Ionicons name="book" size={20} color={Colors.child.secondary} />
-                            <Text style={styles.titleText} numberOfLines={1}>{storyTitle}</Text>
+                            <Text style={[styles.titleText, getBiDiStyle(storyTitle)]} numberOfLines={1}>{storyTitle}</Text>
                         </View>
 
                         <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
@@ -125,7 +142,9 @@ export default function StoryScreen() {
 
                             {/* Text Area */}
                             <View style={styles.textArea}>
-                                <Text style={styles.storyText}>{currentPage.text}</Text>
+                                <Text style={[styles.storyText, getBiDiStyle(currentPage.text), !isArabic(currentPage.text) && { textAlign: 'center' }]}>
+                                    {formatBiDiText(currentPage.text)}
+                                </Text>
                             </View>
                         </Animated.View>
 
@@ -326,7 +345,6 @@ const styles = StyleSheet.create({
         ...Typography.child.title,
         fontSize: 22,
         color: Colors.child.textPrimary,
-        textAlign: 'center',
         lineHeight: 34,
     },
 

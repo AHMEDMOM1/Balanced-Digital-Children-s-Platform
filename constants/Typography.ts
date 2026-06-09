@@ -73,6 +73,12 @@ const Typography = {
             lineHeight: 20,
         },
     },
+
+    // ── BiDi / RTL Support ────────────────────
+    rtl: {
+        writingDirection: 'rtl' as const,
+        textAlign: 'right' as const,
+    },
 };
 
 export default Typography;

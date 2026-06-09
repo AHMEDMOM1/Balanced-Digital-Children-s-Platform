@@ -9,6 +9,7 @@ import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../services/utils/bidi';
 
 interface HeaderProps {
     title?: string;
@@ -27,7 +28,7 @@ export default function Header({
         <View style={[styles.container, { paddingTop: insets.top + Layout.spacing.sm }]}>
             <View style={styles.content}>
                 <Ionicons name="time-outline" size={24} color={Colors.header.icon} />
-                <Text style={styles.title}>{title}</Text>
+                <Text style={[styles.title, getBiDiStyle(title), !isArabic(title) && { textAlign: 'center' }]}>{formatBiDiText(title)}</Text>
                 {showLock ? (
                     <TouchableOpacity onPress={onLockPress} style={styles.lockButton}>
                         <Ionicons name="lock-closed-outline" size={24} color={Colors.header.icon} />
@@ -62,7 +63,6 @@ const styles = StyleSheet.create({
     title: {
         ...Typography.child.subtitle,
         color: Colors.header.text,
-        textAlign: 'center',
         flex: 1,
     },
     lockButton: {

@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../services/api/hooks';
 import { getClient } from '../../services/api/client';
+import useSettingsStore from '../../store/useSettingsStore';
 
 const S = {
     surface: '#FDF7FF', surfaceLow: '#F8F2FA', surfaceLowest: '#FFFFFF',
@@ -54,7 +55,12 @@ export default function RegisterScreen() {
         setIsLoading(true);
         try {
             await auth.verifyOtp(email.trim(), code.trim());
-            router.replace('/(parent)');
+            const { isPinSetup } = useSettingsStore.getState();
+            if (!isPinSetup) {
+                router.replace('/auth/setup-pin');
+            } else {
+                router.replace('/(parent)');
+            }
         } catch (err: any) {
             setLocalError(err.message || 'Registration verification failed');
         } finally {
@@ -115,10 +121,10 @@ export default function RegisterScreen() {
                         ) : (
                             <View>
                                 <View style={styles.field}>
-                                    <Text style={styles.label}>6-Digit OTP Code</Text>
+                                    <Text style={styles.label}>Verification Code</Text>
                                     <View style={styles.inputRow}>
                                         <Ionicons name="lock-closed-outline" size={18} color={S.onSurfaceVariant} />
-                                        <TextInput style={styles.input} value={code} onChangeText={setCode} placeholder="123456" placeholderTextColor={S.outlineVariant} keyboardType="number-pad" maxLength={6} />
+                                        <TextInput style={styles.input} value={code} onChangeText={setCode} placeholder="12345678" placeholderTextColor={S.outlineVariant} keyboardType="number-pad" maxLength={8} />
                                     </View>
                                 </View>
 

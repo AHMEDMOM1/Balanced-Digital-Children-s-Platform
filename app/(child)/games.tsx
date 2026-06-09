@@ -8,11 +8,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import DegradableAnimation from '../../components/ui/DegradableAnimation';
+import OfflineBadge from '../../components/ui/OfflineBadge';
 import Header from '../../components/ui/Header';
+import EmptyState from '../../components/ui/EmptyState';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
-import { useGames } from '../../services/api/hooks';
+import { useGames } from '../../services/api/games';
 
 const gameCardStyles = [
     { bg: 'rgba(255,218,214,0.85)', icon: 'extension-puzzle', borderColor: 'rgba(186, 26, 26, 0.2)', titleColor: '#93000A' },
@@ -39,15 +42,29 @@ export default function GamesScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
             >
+                    <OfflineBadge lastSyncAt={null} />
                 {/* ── Hero Banner ── */}
-                <Animated.View entering={FadeInDown.duration(500)} style={styles.heroBanner}>
-                    <View style={styles.heroOverlay}>
-                        <Text style={styles.heroEmoji}>🎮🧩</Text>
-                    </View>
-                    <View style={styles.heroTextOverlay}>
-                        <Text style={styles.heroTitle}>Ready to Play?</Text>
-                    </View>
-                </Animated.View>
+                <DegradableAnimation
+                    staticFallback={
+                        <View style={styles.heroBanner}>
+                            <View style={styles.heroOverlay}>
+                                <Text style={styles.heroEmoji}>🎮🧩</Text>
+                            </View>
+                            <View style={styles.heroTextOverlay}>
+                                <Text style={styles.heroTitle}>Ready to Play?</Text>
+                            </View>
+                        </View>
+                    }
+                >
+                    <Animated.View entering={FadeInDown.duration(500)} style={styles.heroBanner}>
+                        <View style={styles.heroOverlay}>
+                            <Text style={styles.heroEmoji}>🎮🧩</Text>
+                        </View>
+                        <View style={styles.heroTextOverlay}>
+                            <Text style={styles.heroTitle}>Ready to Play?</Text>
+                        </View>
+                    </Animated.View>
+                </DegradableAnimation>
 
                 {/* ── Loading State ── */}
                 {isLoading && (
@@ -67,10 +84,7 @@ export default function GamesScreen() {
 
                 {/* ── Empty State ── */}
                 {!isLoading && !error && (!games || games.length === 0) && (
-                    <View style={styles.centerState}>
-                        <Text style={styles.emptyEmoji}>🎨</Text>
-                        <Text style={styles.stateText}>No games available right now!</Text>
-                    </View>
+                    <EmptyState emoji="🎨" title="No games available right now!" />
                 )}
 
                 {/* ── Offline Banner ── */}
@@ -296,3 +310,5 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
+
+

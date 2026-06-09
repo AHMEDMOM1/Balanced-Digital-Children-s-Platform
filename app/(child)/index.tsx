@@ -10,10 +10,13 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
+import OfflineBadge from '../../components/ui/OfflineBadge';
 import Header from '../../components/ui/Header';
 import PinLock from '../../components/ui/PinLock';
 import useSettingsStore from '../../store/useSettingsStore';
 import useSessionStore from '../../store/useSessionStore';
+import { timeSync } from '../../services/resilience/timeSync';
+import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
 
 export default function ChildHomeScreen() {
     const router = useRouter();
@@ -78,15 +81,24 @@ export default function ChildHomeScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
             >
+                <OfflineBadge lastSyncAt={null} />
+
+                {Math.abs(timeSync.getDriftSeconds()) > 300 && (
+                    <View style={styles.driftWarning}>
+                        <Ionicons name="time-outline" size={16} color="#B3261E" />
+                        <Text style={styles.driftText}>Time sync issue</Text>
+                    </View>
+                )}
+
                 <View style={styles.welcomeContainer}>
-                    <Text style={styles.welcomeTitle}>Hi Leo!</Text>
-                    <Text style={styles.welcomeSubtitle}>Ready for an adventure today?</Text>
+                    <Text style={[styles.welcomeTitle, getBiDiStyle("Hi Leo!"), !isArabic("Hi Leo!") && { textAlign: 'center' }]}>Hi Leo!</Text>
+                    <Text style={[styles.welcomeSubtitle, getBiDiStyle("Ready for an adventure today?"), !isArabic("Ready for an adventure today?") && { textAlign: 'center' }]}>Ready for an adventure today?</Text>
                 </View>
 
                 {/* ── Time Pill ── */}
                 <View style={styles.timerPill}>
                     <Ionicons name="time-outline" size={20} color={Colors.child.textPrimary} />
-                    <Text style={styles.timerText}>{formatTime(remainingSeconds)} remaining</Text>
+                    <Text style={[styles.timerText, getBiDiStyle(`${formatTime(remainingSeconds)} remaining`)]}>{formatTime(remainingSeconds)} remaining</Text>
                 </View>
 
                 {/* ── Grid ── */}
@@ -103,7 +115,7 @@ export default function ChildHomeScreen() {
                                 <View style={styles.iconCircle}>
                                     <Ionicons name={activity.icon} size={36} color={activity.iconColor} />
                                 </View>
-                                <Text style={[styles.cardTitle, { color: activity.iconColor }]}>
+                                <Text style={[styles.cardTitle, { color: activity.iconColor }, getBiDiStyle(activity.title)]}>
                                     {activity.title}
                                 </Text>
                             </TouchableOpacity>
@@ -142,10 +154,12 @@ const styles = StyleSheet.create({
         ...Typography.child.hero,
         color: Colors.child.primary,
         marginBottom: 4,
+        alignSelf: 'stretch',
     },
     welcomeSubtitle: {
         ...Typography.child.subtitle,
         color: Colors.child.textSecondary,
+        alignSelf: 'stretch',
     },
     timerPill: {
         flexDirection: 'row',
@@ -198,5 +212,13 @@ const styles = StyleSheet.create({
     cardTitle: {
         ...Typography.child.title,
         fontSize: 22,
+    },
+    driftWarning: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        backgroundColor: '#FCE4EC', paddingHorizontal: 12, paddingVertical: 6,
+        borderRadius: 16, marginBottom: 12, alignSelf: 'center',
+    },
+    driftText: {
+        fontSize: 12, color: '#B3261E', fontWeight: '500',
     },
 });

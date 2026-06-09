@@ -61,3 +61,26 @@ export interface ApiResponse<T> {
   isOffline: boolean;
   isLoading: boolean;
 }
+
+export type ReportRange = 'today' | 'week' | 'month';
+
+export interface DailyStats {
+  id: string;
+  child_id: string;
+  stat_date: string; // ISO format: 'YYYY-MM-DD'
+  total_seconds: number;
+  stories_seconds: number;
+  games_seconds: number;
+  videos_seconds: number;
+  creative_seconds: number;
+  session_count: number;
+  top_activity: string | null;
+  timezone_offset_minutes: number;
+  is_finalized: boolean;
+}
+
+export interface ComparisonData {
+  childA: { id: string; name: string; stats: DailyStats[] };
+  childB: { id: string; name: string; stats: DailyStats[] };
+  normalizedMax: number;
+}

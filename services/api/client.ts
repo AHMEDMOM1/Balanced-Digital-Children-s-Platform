@@ -57,3 +57,5 @@ function getSupabaseClient(): SupabaseClient {
 export function getClient(): SupabaseClient {
   return getSupabaseClient();
 }
+
+export const supabase = getSupabaseClient();

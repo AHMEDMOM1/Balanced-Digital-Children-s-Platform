@@ -1,6 +1,10 @@
 /**
- * Socket Service — Real-time communication stub.
+ * @deprecated This socket stub is superseded by services/realtime/familyChannel.ts
+ * which uses Supabase Realtime Channels. This file is kept for backward
+ * compatibility but will be removed in a future release.
  *
+ * Socket Service — Real-time communication stub.
+...
  * WebSocket connectivity will be enabled in a later phase when the app
  * is running on physical devices.  For now all data flows through the
  * REST API layer (services/api.ts).
