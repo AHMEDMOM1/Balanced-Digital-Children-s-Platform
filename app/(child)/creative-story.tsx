@@ -12,7 +12,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
-import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../services/utils/bidi';
 
 const KEYWORDS = [
     { id: 'rabbit', label: 'Rabbit', labelAr: 'أرنب' },
@@ -100,7 +100,7 @@ export default function CreativeStoryScreen() {
                         <Text style={styles.resultTitle}>Your Magical Story</Text>
                         <View style={styles.storyCard}>
                             <Text style={[styles.storyText, getBiDiStyle(story)]}>
-                                {story}
+                                {formatBiDiText(story)}
                             </Text>
                         </View>
                         <TouchableOpacity style={styles.resetBtn} onPress={() => setStory(null)}>

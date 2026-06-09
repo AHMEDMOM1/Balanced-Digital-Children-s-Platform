@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
-import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../services/utils/bidi';
 
 interface EmptyStateProps {
     emoji?: string;
@@ -26,8 +26,8 @@ export default function EmptyState({
             ) : (
                 <Text style={styles.emoji}>{emoji}</Text>
             )}
-            <Text style={[styles.title, getBiDiStyle(title), !isArabic(title) && { textAlign: 'center' }]}>{title}</Text>
-            {subtitle && <Text style={[styles.subtitle, getBiDiStyle(subtitle), !isArabic(subtitle) && { textAlign: 'center' }]}>{subtitle}</Text>}
+            <Text style={[styles.title, getBiDiStyle(title), !isArabic(title) && { textAlign: 'center' }]}>{formatBiDiText(title)}</Text>
+            {subtitle && <Text style={[styles.subtitle, getBiDiStyle(subtitle), !isArabic(subtitle) && { textAlign: 'center' }]}>{formatBiDiText(subtitle)}</Text>}
         </View>
     );
 }

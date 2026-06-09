@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import Colors from '../../constants/Colors';
-import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../services/utils/bidi';
 
 export default function BlockedScreen() {
   const router = useRouter();
@@ -11,14 +11,14 @@ export default function BlockedScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.emoji}>🌳</Text>
-        <Text style={[styles.title, getBiDiStyle("اذهب العب في الخارج!"), !isArabic("اذهب العب في الخارج!") && { textAlign: 'center' }]}>اذهب العب في الخارج!</Text>
-        <Text style={[styles.subtitle, getBiDiStyle("تم إيقاف هذا القسم من قِبَل أحد الوالدين"), !isArabic("تم إيقاف هذا القسم من قِبَل أحد الوالدين") && { textAlign: 'center' }]}>تم إيقاف هذا القسم من قِبَل أحد الوالدين</Text>
+        <Text style={[styles.title, getBiDiStyle("اذهب العب في الخارج!"), !isArabic("اذهب العب في الخارج!") && { textAlign: 'center' }]}>{formatBiDiText("اذهب العب في الخارج!")}</Text>
+        <Text style={[styles.subtitle, getBiDiStyle("تم إيقاف هذا القسم من قِبَل أحد الوالدين"), !isArabic("تم إيقاف هذا القسم من قِبَل أحد الوالدين") && { textAlign: 'center' }]}>{formatBiDiText("تم إيقاف هذا القسم من قِبَل أحد الوالدين")}</Text>
         
         <TouchableOpacity 
           style={styles.button}
           onPress={() => router.replace('/(child)/')}
         >
-          <Text style={[styles.buttonText, getBiDiStyle("العودة للرئيسية")]}>العودة للرئيسية</Text>
+          <Text style={[styles.buttonText, getBiDiStyle("العودة للرئيسية")]}>{formatBiDiText("العودة للرئيسية")}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

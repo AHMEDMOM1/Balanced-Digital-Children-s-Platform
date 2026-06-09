@@ -17,7 +17,7 @@ import Typography from '../../../constants/Typography';
 import Layout from '../../../constants/Layout';
 import { useStory, logStoryActivity } from '../../../services/api/hooks';
 import useAuthStore from '../../../store/useAuthStore';
-import { getBiDiStyle, isArabic } from '../../../services/utils/bidi';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../../services/utils/bidi';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -143,7 +143,7 @@ export default function StoryScreen() {
                             {/* Text Area */}
                             <View style={styles.textArea}>
                                 <Text style={[styles.storyText, getBiDiStyle(currentPage.text), !isArabic(currentPage.text) && { textAlign: 'center' }]}>
-                                    {currentPage.text}
+                                    {formatBiDiText(currentPage.text)}
                                 </Text>
                             </View>
                         </Animated.View>
