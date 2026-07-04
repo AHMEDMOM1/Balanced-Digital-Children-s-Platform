@@ -5,6 +5,15 @@
  * Spec FR-007, FR-008, FR-009, FR-011
  */
 
+jest.mock('../../services/api/client', () => ({
+  getClient: jest.fn(() => ({
+    auth: { getSession: jest.fn().mockResolvedValue({ data: { session: null } }), onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })) },
+    from: jest.fn(),
+    rpc: jest.fn(),
+  })),
+  supabase: { auth: { getSession: jest.fn(), onAuthStateChange: jest.fn() } },
+}));
+
 jest.mock('../../services/resilience/sessionManager', () => ({
   sessionManager: { save: jest.fn(), clear: jest.fn(), restore: jest.fn().mockResolvedValue(null) },
 }));

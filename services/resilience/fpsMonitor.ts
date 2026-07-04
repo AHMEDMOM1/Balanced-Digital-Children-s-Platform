@@ -83,7 +83,8 @@ export class FpsMonitor {
     if (!this.running) return;
     this.rafId = requestAnimationFrame(() => {
       this.frameCount++;
-      this.scheduleNextFrame();
+      // Defer to prevent stack overflow when requestAnimationFrame is synchronous (e.g. in tests)
+      setTimeout(() => this.scheduleNextFrame(), 1);
     });
   };
 
@@ -110,6 +111,11 @@ export class FpsMonitor {
 
     if (this.degraded && this.consecutiveAboveThreshold >= this.config.restoreDurationMs) {
       this.triggerRestore();
+    }
+
+    // Restart rAF loop if it was stopped (handles switching between rAF mocks in tests)
+    if (this.running && this.rafId == null) {
+      this.scheduleNextFrame();
     }
   };
 

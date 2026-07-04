@@ -136,9 +136,6 @@ export default function CreativeScreen() {
                                             <Text style={[styles.activityTitle, { color: cStyle.titleColor }, getBiDiStyle(activity.title)]}>
                                                 {activity.title}
                                             </Text>
-                                            {activity.description && (
-                                                <Text style={[styles.activityDesc, getBiDiStyle(activity.description)]}>{activity.description}</Text>
-                                            )}
                                         </View>
                                     </TouchableOpacity>
                                 </Animated.View>

@@ -4,20 +4,26 @@
  * cannot extend screen time beyond the real server-side limit.
  */
 
-jest.mock('../../../services/api/client', () => ({
-  getClient: jest.fn(() => ({
-    rpc: jest.fn(),
-  })),
-}));
+jest.mock('../../services/api/client', () => {
+  const rpcMock = jest.fn();
+  return { getClient: jest.fn(() => ({ rpc: rpcMock })) };
+});
 
-import { timeSync } from '../../../services/resilience/timeSync';
+import { timeSync } from '../../services/resilience/timeSync';
 
 function getMockRpc() {
-  const { getClient } = jest.requireMock('../../../services/api/client');
+  const { getClient } = jest.requireMock('../../services/api/client');
   return getClient().rpc as jest.Mock;
 }
 
 describe('Clock bypass resistance', () => {
+  beforeEach(() => {
+    getMockRpc().mockClear();
+    (timeSync as any).cachedOffset = 0;
+    (timeSync as any).lastSyncAt = 0;
+    (timeSync as any).syncInFlight = null;
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

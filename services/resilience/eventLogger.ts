@@ -1,5 +1,6 @@
 import { getDB } from './db';
 import { getClient } from '../api/client';
+import { generateCommandId } from '../utils/uuid';
 
 export type ResilienceEventType =
   | 'offline_transition'
@@ -44,7 +45,7 @@ class EventLogger {
 
   async log(event: Omit<ResilienceEvent, 'id' | 'timestamp' | 'synced'>): Promise<void> {
     const db = await getDB();
-    const id = crypto.randomUUID();
+    const id = generateCommandId();
     const timestamp = new Date().toISOString();
 
     await db.runAsync(

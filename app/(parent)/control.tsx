@@ -252,7 +252,7 @@ export default function ControlScreen() {
                                                         name={
                                                             category === 'Adventure' ? 'compass-outline' :
                                                             category === 'Educational' ? 'school-outline' :
-                                                            category === 'Fantasy' ? 'rainbow-outline' :
+                                                            category === 'Fantasy' ? 'color-palette-outline' :
                                                             category === 'Science' ? 'flask-outline' :
                                                             category === 'Fun' ? 'happy-outline' :
                                                             'bulb-outline'

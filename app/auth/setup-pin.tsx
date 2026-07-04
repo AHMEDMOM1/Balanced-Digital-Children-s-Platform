@@ -28,8 +28,8 @@ export default function SetupPinScreen() {
     // Prevent back navigation to force PIN setup
     React.useEffect(() => {
         const onBackPress = () => true;
-        BackHandler.addEventListener('hardwareBackPress', onBackPress);
-        return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription.remove();
     }, []);
 
     const activeInput = step === 'new' ? newPin : confirmPin;

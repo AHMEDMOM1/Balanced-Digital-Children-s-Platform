@@ -59,7 +59,7 @@ describe('CacheManager', () => {
         last_synced: Date.now(),
         size_bytes: 100,
       });
-      const result = await cacheManager.get('corrupt-key', 'expected-checksum');
+      const result = await cacheManager.get('corrupt-key', { checksum: 'expected-checksum' });
       expect(result).toBeNull();
       expect(mockRunAsync).toHaveBeenCalledWith(
         'DELETE FROM cached_content WHERE id = ?',

@@ -13,6 +13,7 @@ module.exports = {
         '^react-native$': '<rootDir>/tests/__mocks__/react-native.ts',
         '^expo-router$': '<rootDir>/tests/__mocks__/expo-router.ts',
         '^expo-battery$': '<rootDir>/tests/__mocks__/expo-battery.ts',
+        '^expo-file-system$': '<rootDir>/tests/__mocks__/expo-file-system.ts',
       },
       globals: {
         'ts-jest': {
@@ -35,6 +36,7 @@ module.exports = {
         '^react-native$': '<rootDir>/tests/__mocks__/react-native.ts',
         '^expo-router$': '<rootDir>/tests/__mocks__/expo-router.ts',
         '^expo-battery$': '<rootDir>/tests/__mocks__/expo-battery.ts',
+        '^expo-file-system$': '<rootDir>/tests/__mocks__/expo-file-system.ts',
       },
       globals: {
         'ts-jest': {

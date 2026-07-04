@@ -3,7 +3,7 @@
  * T047 (integration): Full PIN recovery flow — generate token → verify → reset PIN via RPC.
  */
 
-jest.mock('../../../services/resilience/db', () => {
+jest.mock('../../services/resilience/db', () => {
   const rows: any[] = [];
   const db = {
     runAsync: jest.fn(async (_sql: string, ...args: any[]) => { rows.push(args); }),
@@ -12,7 +12,7 @@ jest.mock('../../../services/resilience/db', () => {
   return { getDB: jest.fn(async () => db), _rows: rows };
 });
 
-jest.mock('../../../services/api/client', () => {
+jest.mock('../../services/api/client', () => {
   const rpcMock = jest.fn(async () => ({ error: null }));
   const fromMock = jest.fn(() => ({
     select: jest.fn(() => ({
@@ -29,10 +29,10 @@ jest.mock('../../../services/api/client', () => {
   };
 });
 
-import { PinRecoveryManager } from '../../../services/resilience/pinRecoveryManager';
+import { PinRecoveryManager } from '../../services/resilience/pinRecoveryManager';
 
 function getMockRpc() {
-  const { _getRpc } = jest.requireMock('../../../services/api/client');
+  const { _getRpc } = jest.requireMock('../../services/api/client');
   return _getRpc() as jest.Mock;
 }
 

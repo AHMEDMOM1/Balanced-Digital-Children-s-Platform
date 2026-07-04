@@ -40,7 +40,7 @@ export default function ParentHomeScreen() {
                         </View>
                         <Text style={styles.cardTitle}>Time Today</Text>
                         <View style={styles.badge}>
-                            <Text style={styles.badgeText}>Daily Limit: {dailyTimeLimitMinutes / 60}h</Text>
+                            <Text style={styles.badgeText}>Daily Limit: {dailyTimeLimitMinutes} min</Text>
                         </View>
                     </View>
 

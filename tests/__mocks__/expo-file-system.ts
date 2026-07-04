@@ -1,0 +1,9 @@
+export const documentDirectory = '/tmp/';
+export const cacheDirectory = '/tmp/cache/';
+export const readAsStringAsync = jest.fn();
+export const writeAsStringAsync = jest.fn();
+export const deleteAsync = jest.fn();
+export const getInfoAsync = jest.fn();
+export const makeDirectoryAsync = jest.fn();
+export const copyAsync = jest.fn();
+export const moveAsync = jest.fn();

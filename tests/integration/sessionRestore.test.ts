@@ -4,7 +4,7 @@
  * across a simulated app-kill and restart, with gap compensation.
  */
 
-jest.mock('../../../services/resilience/db', () => {
+jest.mock('../../services/resilience/db', () => {
   let stored: Record<string, any> | null = null;
   const db = {
     runAsync: jest.fn(async (_sql: string, ...args: any[]) => {
@@ -28,7 +28,7 @@ jest.mock('../../../services/resilience/db', () => {
   };
 });
 
-import { sessionManager, SessionSnapshot } from '../../../services/resilience/sessionManager';
+import { sessionManager, SessionSnapshot } from '../../services/resilience/sessionManager';
 
 const SNAPSHOT: SessionSnapshot = {
   childId: 'child-restore-test',
@@ -53,7 +53,7 @@ describe('Session restore integration', () => {
   });
 
   it('applies gap compensation ≤ 30s when app was killed for a short period', async () => {
-    const { _setStored } = jest.requireMock('../../../services/resilience/db');
+    const { _setStored } = jest.requireMock('../../services/resilience/db');
     const tenSecondsAgo = Date.now() - 10_000;
     _setStored({
       child_id: 'gap-child',
@@ -70,7 +70,7 @@ describe('Session restore integration', () => {
   });
 
   it('caps gap compensation at 30s even after a long gap', async () => {
-    const { _setStored } = jest.requireMock('../../../services/resilience/db');
+    const { _setStored } = jest.requireMock('../../services/resilience/db');
     _setStored({
       child_id: 'gap-child',
       content_id: 'video-abc',
@@ -86,7 +86,7 @@ describe('Session restore integration', () => {
   });
 
   it('returns null when no session has been saved', async () => {
-    const { _setStored } = jest.requireMock('../../../services/resilience/db');
+    const { _setStored } = jest.requireMock('../../services/resilience/db');
     _setStored(null);
 
     const restored = await sessionManager.restore();
