@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Colors from '../../constants/Colors';
+import { verifyPin } from '../../services/api/pinAuth';
 
 interface PinModalProps {
     visible: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    correctPin: string;
+    correctPin?: string; // kept for interface compatibility, verification uses stored hash
 }
 
 const S = {
@@ -21,17 +21,20 @@ const S = {
     error: '#BA1A1A',
 };
 
-export default function PinModal({ visible, onClose, onSuccess, correctPin }: PinModalProps) {
+const PIN_LENGTH = 6;
+
+export default function PinModal({ visible, onClose, onSuccess }: PinModalProps) {
     const [pin, setPin] = useState('');
     const [error, setError] = useState('');
 
-    const handlePress = (digit: string) => {
+    const handlePress = async (digit: string) => {
         setError('');
-        if (pin.length < 4) {
+        if (pin.length < PIN_LENGTH) {
             const newPin = pin + digit;
             setPin(newPin);
-            if (newPin.length === 4) {
-                if (newPin === correctPin) {
+            if (newPin.length === PIN_LENGTH) {
+                const correct = await verifyPin(newPin, '@parent_pin_hash');
+                if (correct) {
                     onSuccess();
                     setTimeout(() => {
                         setPin('');
@@ -66,7 +69,7 @@ export default function PinModal({ visible, onClose, onSuccess, correctPin }: Pi
                     {error ? <Text style={styles.errorText}>{error}</Text> : <View style={{ height: 20, marginBottom: 12 }} />}
 
                     <View style={styles.dotsRow}>
-                        {[0, 1, 2, 3].map(i => (
+                        {[0, 1, 2, 3, 4, 5].map(i => (
                             <View
                                 key={i}
                                 style={[
@@ -108,23 +111,23 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: S.surfaceLowest, borderRadius: 16,
-        padding: 32, alignItems: 'center', width: '100%', maxWidth: 340,
+        padding: 32, alignItems: 'center', width: '100%', maxWidth: 360,
         position: 'relative',
     },
     closeBtn: { position: 'absolute', top: 16, right: 16, padding: 8 },
     title: { fontSize: 20, fontWeight: '700', color: S.primary, marginBottom: 8 },
     desc: { fontSize: 15, color: S.onSurfaceVariant, marginBottom: 16 },
     errorText: { color: S.error, fontSize: 14, fontWeight: '600', marginBottom: 12 },
-    dotsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+    dotsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
     dot: {
-        width: 44, height: 52, borderRadius: 8,
+        width: 36, height: 52, borderRadius: 8,
         borderWidth: 1, borderColor: S.outlineVariant,
         alignItems: 'center', justifyContent: 'center',
     },
     dotActive: { borderColor: S.primary, borderWidth: 2, backgroundColor: S.surfaceLowest },
     dotDisabled: { backgroundColor: S.surfaceLow },
     dotFilled: { backgroundColor: S.surfaceLow },
-    dotChar: { fontSize: 24, color: S.primary },
+    dotChar: { fontSize: 22, color: S.primary },
     keypad: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12 },
     key: {
         width: 68, height: 56, borderRadius: 8,

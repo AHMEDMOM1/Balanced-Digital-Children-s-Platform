@@ -2,7 +2,7 @@
  * Video Player Screen — Individual Video View
  * Matches Stitch video gallery card style with immersive player.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -12,6 +12,9 @@ import Colors from '../../../constants/Colors';
 import Typography from '../../../constants/Typography';
 import Layout from '../../../constants/Layout';
 import { useContentById, useVideos } from '../../../services/api/hooks';
+import useAuthStore from '../../../store/useAuthStore';
+import { useSessionWriter } from '../../../services/api/sessions';
+import YoutubePlayer from 'react-native-youtube-iframe';
 
 const styleOptions = [
     { bg: '#D4E7D1', titleColor: '#6750A4' },
@@ -20,6 +23,12 @@ const styleOptions = [
     { bg: '#D8E8D4', titleColor: '#6750A4' },
 ];
 
+function extractYouTubeId(url: string | undefined): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+}
+
 export default function VideoPlayerScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +36,25 @@ export default function VideoPlayerScreen() {
     const { data: video, isLoading, error } = useContentById(id || '1');
     const { data: relatedVideos } = useVideos();
     const videoStyle = styleOptions[parseInt(id || '1') % styleOptions.length] || styleOptions[0];
+    const childData = useAuthStore((s) => s.childData);
+    const mountTimeRef = useRef(Date.now());
+    const { openSession, closeSession } = useSessionWriter(
+        childData?.id ?? '',
+        childData?.familyId ?? '',
+        'video',
+        id ?? undefined
+    );
+
+    useEffect(() => {
+        if (!childData?.id) return;
+        mountTimeRef.current = Date.now();
+        openSession();
+        return () => {
+            const elapsed = Math.round((Date.now() - mountTimeRef.current) / 1000);
+            closeSession(elapsed);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <SafeAreaView style={styles.safe}>
@@ -55,30 +83,36 @@ export default function VideoPlayerScreen() {
                     <>
                         {/* ── Player Area ── */}
                         <Animated.View entering={FadeIn.duration(500)}>
-                            <View style={[styles.playerArea, { backgroundColor: videoStyle.bg }]}>
-                                <TouchableOpacity
-                                    style={styles.backFloating}
-                                    onPress={() => router.back()}
-                                >
-                                    <Ionicons name="arrow-back" size={22} color="#FFF" />
-                                </TouchableOpacity>
-
-                                <Text style={styles.playerEmoji}>{video.thumbnail_url || '🎬'}</Text>
-
-                                <TouchableOpacity
-                                    style={styles.playBtn}
-                                    onPress={() => setIsPlaying(!isPlaying)}
-                                    activeOpacity={0.8}
-                                >
-                                    <Ionicons
-                                        name={isPlaying ? 'pause' : 'play'}
-                                        size={40}
-                                        color="#FFF"
+                            {extractYouTubeId(video.url) ? (
+                                <View style={{ height: 280, backgroundColor: '#000', borderRadius: 24, overflow: 'hidden' }}>
+                                    <TouchableOpacity
+                                        style={styles.backFloating}
+                                        onPress={() => router.back()}
+                                    >
+                                        <Ionicons name="arrow-back" size={22} color="#FFF" />
+                                    </TouchableOpacity>
+                                    <YoutubePlayer
+                                        height={280}
+                                        videoId={extractYouTubeId(video.url) as string}
+                                        play={isPlaying}
+                                        onChangeState={(event: string) => {
+                                            if (event === 'ended') setIsPlaying(false);
+                                        }}
                                     />
-                                </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <View style={[styles.playerArea, { backgroundColor: videoStyle.bg }]}>
+                                    <TouchableOpacity
+                                        style={styles.backFloating}
+                                        onPress={() => router.back()}
+                                    >
+                                        <Ionicons name="arrow-back" size={22} color="#FFF" />
+                                    </TouchableOpacity>
 
-                                <View style={styles.playerOverlay} />
-                            </View>
+                                    <Text style={styles.playerEmoji}>{video.thumbnail_url || '🎬'}</Text>
+                                    <Text style={styles.stateText}>Video not available</Text>
+                                </View>
+                            )}
                         </Animated.View>
 
                         {/* ── Video Info ── */}

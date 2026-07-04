@@ -5,10 +5,12 @@
  * - Delete Account danger zone
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import useAuthStore from '../../store/useAuthStore';
+import { updateParentName } from '../../services/auth';
 
 const S = {
     surface: '#FDF7FF',
@@ -30,8 +32,30 @@ const S = {
 
 export default function SettingsProfileScreen() {
     const router = useRouter();
-    const [name, setName] = useState('Sarah Jenkins');
-    const [email, setEmail] = useState('sarah.jenkins@example.com');
+    const parentData = useAuthStore((s) => s.parentData);
+    const children = useAuthStore((s) => s.children);
+    const [name, setName] = useState(parentData?.name ?? '');
+    const [email] = useState(parentData?.email ?? '');
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    const handleSave = async () => {
+        if (!name.trim()) return;
+        setSaveError(null);
+        setIsSaving(true);
+        try {
+            const result = await updateParentName(name.trim());
+            if (!result.success) {
+                setSaveError(result.error || 'Could not save changes');
+                return;
+            }
+            await useAuthStore.getState().initialize();
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const avatarColors = [S.tertiaryContainer, S.secondaryContainer, '#FFB4A2', '#9AD1D4'];
 
     return (
         <SafeAreaView style={styles.safe}>
@@ -70,6 +94,13 @@ export default function SettingsProfileScreen() {
                     <Text style={styles.cardSectionTitle}>Personal Information</Text>
                     <View style={styles.cardDivider} />
 
+                    {saveError && (
+                        <View style={styles.errorBox}>
+                            <Ionicons name="alert-circle" size={16} color={S.error} />
+                            <Text style={styles.errorBoxText}>{saveError}</Text>
+                        </View>
+                    )}
+
                     <View style={styles.field}>
                         <Text style={styles.fieldLabel}>Full Name</Text>
                         <TextInput
@@ -82,17 +113,23 @@ export default function SettingsProfileScreen() {
                     <View style={styles.field}>
                         <Text style={styles.fieldLabel}>Email Address</Text>
                         <TextInput
-                            style={styles.fieldInput}
+                            style={[styles.fieldInput, styles.fieldInputDisabled]}
                             value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
+                            editable={false}
                         />
                     </View>
 
                     <View style={styles.saveBtnRow}>
-                        <TouchableOpacity style={styles.saveBtn}>
-                            <Text style={styles.saveBtnText}>Save Changes</Text>
+                        <TouchableOpacity
+                            style={[styles.saveBtn, (!name.trim() || isSaving) && styles.disabledBtn]}
+                            onPress={handleSave}
+                            disabled={!name.trim() || isSaving}
+                        >
+                            {isSaving ? (
+                                <ActivityIndicator color={S.onPrimary} size="small" />
+                            ) : (
+                                <Text style={styles.saveBtnText}>Save Changes</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -101,40 +138,31 @@ export default function SettingsProfileScreen() {
                 <View style={styles.card}>
                     <View style={styles.childHeader}>
                         <Text style={styles.cardSectionTitle}>Linked Child Profiles</Text>
-                        <TouchableOpacity style={styles.addProfileBtn}>
+                        <TouchableOpacity style={styles.addProfileBtn} onPress={() => router.push('/auth/qr-pairing')}>
                             <Ionicons name="add" size={16} color={S.primary} />
                             <Text style={styles.addProfileText}>Add Profile</Text>
                         </TouchableOpacity>
                     </View>
                     <View style={styles.cardDivider} />
 
-                    {/* Child 1 */}
-                    <View style={styles.childRow}>
-                        <View style={[styles.childAvatar, { backgroundColor: S.tertiaryContainer }]}>
-                            <Text style={styles.childAvatarText}>L</Text>
-                        </View>
-                        <View style={styles.childInfo}>
-                            <Text style={styles.childName}>Leo Jenkins</Text>
-                            <Text style={styles.childAge}>Age 8</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => router.push({ pathname: '/(parent)/settings-child-profile' as any, params: { childId: 'L' } })}>
-                            <Text style={styles.manageLink}>Manage</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {children.length === 0 && (
+                        <Text style={styles.noChildrenText}>No children linked yet.</Text>
+                    )}
 
-                    {/* Child 2 */}
-                    <View style={styles.childRow}>
-                        <View style={[styles.childAvatar, { backgroundColor: S.secondaryContainer }]}>
-                            <Text style={styles.childAvatarText}>M</Text>
+                    {children.map((child, i) => (
+                        <View key={child.id} style={styles.childRow}>
+                            <View style={[styles.childAvatar, { backgroundColor: avatarColors[i % avatarColors.length] }]}>
+                                <Text style={styles.childAvatarText}>{child.name?.charAt(0)?.toUpperCase() || '?'}</Text>
+                            </View>
+                            <View style={styles.childInfo}>
+                                <Text style={styles.childName}>{child.name || 'Unnamed child'}</Text>
+                                <Text style={styles.childAge}>Age group: {child.age_group}</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => router.push({ pathname: '/(parent)/settings-child-profile' as any, params: { childId: child.id } })}>
+                                <Text style={styles.manageLink}>Manage</Text>
+                            </TouchableOpacity>
                         </View>
-                        <View style={styles.childInfo}>
-                            <Text style={styles.childName}>Mia Jenkins</Text>
-                            <Text style={styles.childAge}>Age 5</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => router.push({ pathname: '/(parent)/settings-child-profile' as any, params: { childId: 'M' } })}>
-                            <Text style={styles.manageLink}>Manage</Text>
-                        </TouchableOpacity>
-                    </View>
+                    ))}
                 </View>
 
                 {/* ── Danger Zone ── */}
@@ -190,6 +218,8 @@ const styles = StyleSheet.create({
     cardDivider: { height: 1, backgroundColor: S.outlineVariant, marginVertical: 12 },
 
     // Form fields
+    errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: S.errorContainer, padding: 12, borderRadius: 8, marginBottom: 16 },
+    errorBoxText: { fontSize: 13, color: S.error, flex: 1 },
     field: { marginBottom: 16 },
     fieldLabel: { fontSize: 13, fontWeight: '500', color: S.onSurfaceVariant, marginBottom: 6 },
     fieldInput: {
@@ -197,11 +227,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16, paddingVertical: 10, fontSize: 15,
         color: S.onSurface, backgroundColor: S.surface,
     },
+    fieldInputDisabled: { opacity: 0.6 },
     saveBtnRow: { alignItems: 'flex-end', paddingTop: 8 },
     saveBtn: {
         backgroundColor: S.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8,
+        minWidth: 120, alignItems: 'center',
     },
+    disabledBtn: { opacity: 0.5 },
     saveBtnText: { fontSize: 15, fontWeight: '600', color: S.onPrimary },
+    noChildrenText: { fontSize: 14, color: S.onSurfaceVariant, paddingVertical: 8 },
 
     // Child Profiles
     childHeader: {

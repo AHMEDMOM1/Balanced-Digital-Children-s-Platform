@@ -42,7 +42,7 @@ Augment the existing `content_items` table with nullable type-specific columns (
 | All Supabase calls via `services/api/*.ts` | ✅ PASS | New hooks added to existing service files; no direct `supabase.from()` in components |
 | Types in `services/api/types.ts` | ✅ PASS | Per-type interfaces added as extensions of `ContentItem` |
 | Integration tests required | ✅ PASS | Contract tests verify migration schema matches TypeScript types |
-| CLI script for all operations | ✅ PASS | Seed/verify scripts exposed via `package.json` scripts |
+| CLI script for all operations | ⚠️ PARTIAL | Migration uses `npm run db:migrate` CLI entry point (T006); bucket creation (T019–T022) remains a Supabase Dashboard manual step — no CLI available for Storage bucket provisioning |
 | YAGNI / No premature abstraction | ✅ PASS | Augmenting existing table; no new abstraction layers |
 | TDD (tests-first) | ✅ PASS | Migration contract tests written before implementation |
 

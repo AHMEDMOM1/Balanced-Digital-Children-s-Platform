@@ -1,153 +1,235 @@
 /**
- * Entry Screen — SafePlay Timer "Child Reception Area"
- * Matches Stitch child_reception_area_cute_green_mascot design:
- * - Soft gradient background (lavender → warm peach)
- * - Floating glow blobs (primary-fixed, tertiary-fixed, secondary-fixed)
- * - Large mascot circle with floating decorative icons
- * - 3D "Start Playing" button with border-b-8 depth
- * - "Parent Login" link at bottom
+ * Entry Screen — Welcome & routing hub.
+ *
+ * First launch (no device_role saved):
+ *   → Beautiful welcome screen with two options:
+ *     1. "Register via Email" → parent flow
+ *     2. "Scan QR Code" → child flow
+ *
+ * Returning parent (device_role = 'parent'):
+ *   → Not authenticated → /auth/login
+ *   → Authenticated, no PIN → /auth/setup-pin
+ *   → Authenticated, has PIN → /auth/parent-pin-entry
+ *
+ * Returning child (device_role = 'child'):
+ *   → Not paired → /auth/child-scan
+ *   → Paired → /(child) directly (no PIN ever)
  */
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
-import Colors from '../constants/Colors';
-import Typography from '../constants/Typography';
-import Layout from '../constants/Layout';
-import useSettingsStore from '../store/useSettingsStore';
+import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import useAuthStore from '../store/useAuthStore';
-import PinModal from '../components/ui/PinModal';
+import usePairingStore from '../store/usePairingStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Where a parent device should land based on current auth/PIN state.
+async function routeParent(isAuthenticated: boolean): Promise<'/auth/login' | '/auth/setup-pin' | '/auth/parent-pin-entry'> {
+    if (!isAuthenticated) return '/auth/login';
+    const parentPinHash = await AsyncStorage.getItem('@parent_pin_hash');
+    return parentPinHash ? '/auth/parent-pin-entry' : '/auth/setup-pin';
+}
 
 export default function IndexScreen() {
     const router = useRouter();
-    const isPinSetup = useSettingsStore((s) => s.isPinSetup);
-    const pinCode = useSettingsStore((s) => s.pinCode);
+    const params = useLocalSearchParams<{ hub?: string }>();
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-    
-    const [showPinModal, setShowPinModal] = React.useState(false);
-    const [pinTarget, setPinTarget] = React.useState<'/(child)' | '/(parent)'>('/(child)');
+    const authIsLoading = useAuthStore((s) => s.isLoading);
 
-    const handleStartPlaying = () => {
-        if (isPinSetup) {
-            setPinTarget('/(child)');
-            setShowPinModal(true);
-        } else {
-            router.push('/(child)');
+    const [isReady, setIsReady] = useState(false);
+    const [showWelcome, setShowWelcome] = useState(false);
+
+    // On mount: load state, then route or show welcome.
+    // `?hub=1` (set by the parent/child layouts' back-button handler) means
+    // the user explicitly navigated back here to switch sections — show the
+    // picker instead of auto-bouncing back into the section they just left.
+    useEffect(() => {
+        if (params.hub === '1') {
+            setShowWelcome(true);
+            setIsReady(true);
+            return;
         }
-    };
 
-    const handleParentLogin = () => {
-        if (isAuthenticated) {
-            if (isPinSetup) {
-                setPinTarget('/(parent)');
-                setShowPinModal(true);
-            } else {
-                router.push('/auth/setup-pin');
+        (async () => {
+            await usePairingStore.getState().loadPairingState();
+            const { deviceRole, pairingState } = usePairingStore.getState();
+
+            if (deviceRole === 'child') {
+                if (pairingState !== null) {
+                    router.replace('/(child)');
+                } else {
+                    router.replace('/auth/child-scan');
+                }
+                return;
             }
-        } else {
-            router.push('/auth/login');
-        }
+
+            if (deviceRole === 'parent') {
+                router.replace(await routeParent(isAuthenticated));
+                return;
+            }
+
+            // First launch — show welcome
+            setShowWelcome(true);
+            setIsReady(true);
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Parent card: resume an existing session/PIN if there is one, otherwise
+    // start the normal first-time registration flow.
+    const handleEmailRegister = async () => {
+        await usePairingStore.getState().saveDeviceRole('parent');
+        router.replace(await routeParent(isAuthenticated));
     };
 
-    return (
-        <LinearGradient
-            colors={['#F2EEFF', '#FDF7FF', '#FFF1D6']}
-            locations={[0, 0.5, 1]}
-            style={styles.container}
-        >
-            {/* ── Floating Glow Blobs (matching the HTML reference) ── */}
-            <View style={styles.blobLayer} pointerEvents="none">
-                <View style={[styles.blob, styles.blobPurpleTopLeft]} />
-                <View style={[styles.blob, styles.blobGoldBottomRight]} />
-                <View style={[styles.blob, styles.blobSecondaryMidRight]} />
-            </View>
+    // Child card: resume an existing pairing if there is one, otherwise scan.
+    const handleScanQR = async () => {
+        await usePairingStore.getState().saveDeviceRole('child');
+        const { pairingState } = usePairingStore.getState();
+        router.replace(pairingState !== null ? '/(child)' : '/auth/child-scan');
+    };
 
-            {/* ── Content ── */}
-            <View style={styles.content}>
-                {/* ── Title ── */}
-                <Animated.View entering={FadeInDown.duration(600)} style={styles.titleArea}>
-                    <Text style={styles.title}>Ready to Play?</Text>
-                    <Text style={styles.subtitle}>Tap the big button to start!</Text>
-                </Animated.View>
+    // Loading
+    if (!isReady || authIsLoading) {
+        return (
+            <LinearGradient
+                colors={['#F2EEFF', '#FDF7FF', '#FFF1D6']}
+                locations={[0, 0.5, 1]}
+                style={styles.loadingContainer}
+            >
+                <ActivityIndicator size="large" color="#4F378A" />
+            </LinearGradient>
+        );
+    }
 
-                {/* ── Mascot ── */}
-                <Animated.View entering={FadeIn.delay(300).duration(800)} style={styles.mascotContainer}>
-                    {/* Decorative circle behind mascot */}
-                    <View style={styles.mascotCircle}>
-                        <Image
-                            source={require('../assets/mascot.png')}
-                            style={styles.mascotImage}
-                            resizeMode="contain"
-                        />
-                    </View>
-                    {/* Floating star icon — top right */}
-                    <Animated.View
-                        entering={FadeIn.delay(800).duration(500)}
-                        style={[styles.floatingIcon, styles.starIcon]}
-                    >
-                        <Ionicons name="star" size={28} color="#765B00" />
-                    </Animated.View>
-                    {/* Floating toy icon — bottom left */}
-                    <Animated.View
-                        entering={FadeIn.delay(1000).duration(500)}
-                        style={[styles.floatingIcon, styles.toyIcon]}
-                    >
-                        <Ionicons name="car-sport" size={28} color="#4F378A" />
-                    </Animated.View>
-                </Animated.View>
+    // Welcome screen
+    if (showWelcome) {
+        return (
+            <LinearGradient
+                colors={['#F2EEFF', '#FDF7FF', '#FFF1D6']}
+                locations={[0, 0.5, 1]}
+                style={styles.container}
+            >
+                {/* ── Floating Glow Blobs ── */}
+                <View style={styles.blobLayer} pointerEvents="none">
+                    <View style={[styles.blob, styles.blobPurple]} />
+                    <View style={[styles.blob, styles.blobGold]} />
+                    <View style={[styles.blob, styles.blobPink]} />
+                </View>
 
-                {/* ── Start Playing Button (3D) ── */}
-                <Animated.View entering={FadeInUp.delay(600).duration(600)} style={styles.buttonWrapper}>
-                    <TouchableOpacity
-                        style={styles.startButton}
-                        onPress={handleStartPlaying}
-                        activeOpacity={0.85}
-                    >
-                        {/* 3D border-bottom highlight */}
-                        <View style={styles.btnDepthBorder} />
-                        {/* Top shine border */}
-                        <View style={styles.btnTopShine} />
-                        {/* Content */}
-                        <View style={styles.btnContent}>
-                            <Ionicons name="play-circle" size={40} color={Colors.shared.white} />
-                            <Text style={styles.startButtonText}>Start Playing</Text>
+                <View style={styles.content}>
+                    {/* ── Mascot + Title ── */}
+                    <Animated.View entering={ZoomIn.duration(700)} style={styles.mascotWrap}>
+                        <View style={styles.mascotRing}>
+                            <Image
+                                source={require('../assets/mascot.png')}
+                                style={styles.mascotImage}
+                                resizeMode="contain"
+                            />
                         </View>
-                    </TouchableOpacity>
-                </Animated.View>
+                        {/* Floating decorative badges */}
+                        <Animated.View entering={FadeIn.delay(600).duration(400)} style={[styles.floatingBadge, styles.badgeStar]}>
+                            <Ionicons name="star" size={22} color="#765B00" />
+                        </Animated.View>
+                        <Animated.View entering={FadeIn.delay(800).duration(400)} style={[styles.floatingBadge, styles.badgeHeart]}>
+                            <Ionicons name="heart" size={20} color="#9C4146" />
+                        </Animated.View>
+                        <Animated.View entering={FadeIn.delay(1000).duration(400)} style={[styles.floatingBadge, styles.badgeShield]}>
+                            <Ionicons name="shield-checkmark" size={20} color="#4F378A" />
+                        </Animated.View>
+                    </Animated.View>
 
-                {/* ── Parent Access ── */}
-                <Animated.View entering={FadeIn.delay(900).duration(500)}>
-                    <TouchableOpacity
-                        style={styles.parentLink}
-                        onPress={handleParentLogin}
-                    >
-                        <Ionicons name="shield-checkmark-outline" size={20} color="#7A7582" />
-                        <Text style={styles.parentLinkText}>Parent Login</Text>
-                    </TouchableOpacity>
-                </Animated.View>
-            </View>
+                    <Animated.View entering={FadeInDown.delay(300).duration(600)} style={styles.titleArea}>
+                        <Text style={styles.appName}>SafePlay Timer</Text>
+                        <Text style={styles.tagline}>A safe & fun digital space for your child</Text>
+                    </Animated.View>
 
-            <PinModal
-                visible={showPinModal}
-                onClose={() => setShowPinModal(false)}
-                onSuccess={() => {
-                    setShowPinModal(false);
-                    router.push(pinTarget);
-                }}
-                correctPin={pinCode}
-            />
-        </LinearGradient>
+                    {/* ── Action Buttons ── */}
+                    <View style={styles.actionsArea}>
+                        {/* Register via Email — Parent */}
+                        <Animated.View entering={FadeInUp.delay(500).duration(600)}>
+                            <TouchableOpacity
+                                style={styles.primaryCard}
+                                onPress={handleEmailRegister}
+                                activeOpacity={0.88}
+                            >
+                                <LinearGradient
+                                    colors={['#4F378A', '#7B5DC0']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.cardGradient}
+                                >
+                                    <View style={styles.cardIconWrap}>
+                                        <Ionicons name="mail" size={28} color="#FFFFFF" />
+                                    </View>
+                                    <View style={styles.cardTextWrap}>
+                                        <Text style={styles.cardTitle}>Register via Email</Text>
+                                        <Text style={styles.cardDesc}>
+                                            For parents — sign up to manage your child's device
+                                        </Text>
+                                    </View>
+                                    <Ionicons name="arrow-forward-circle" size={28} color="rgba(255,255,255,0.7)" />
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </Animated.View>
+
+                        {/* Scan QR — Child */}
+                        <Animated.View entering={FadeInUp.delay(700).duration(600)}>
+                            <TouchableOpacity
+                                style={styles.secondaryCard}
+                                onPress={handleScanQR}
+                                activeOpacity={0.88}
+                            >
+                                <View style={styles.secondaryInner}>
+                                    <View style={styles.qrIconWrap}>
+                                        <Ionicons name="qr-code" size={28} color="#765B00" />
+                                    </View>
+                                    <View style={styles.cardTextWrap}>
+                                        <Text style={styles.secondaryTitle}>Scan QR Code</Text>
+                                        <Text style={styles.secondaryDesc}>
+                                            For child's device — scan the code from parent's phone
+                                        </Text>
+                                    </View>
+                                    <Ionicons name="arrow-forward-circle-outline" size={28} color="#765B00" />
+                                </View>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </View>
+
+                    {/* ── Footer ── */}
+                    <Animated.View entering={FadeIn.delay(1000).duration(500)} style={styles.footer}>
+                        <View style={styles.footerLine} />
+                        <View style={styles.footerContent}>
+                            <Ionicons name="lock-closed" size={14} color="#9A929E" />
+                            <Text style={styles.footerText}>All data is encrypted and secure</Text>
+                        </View>
+                    </Animated.View>
+                </View>
+            </LinearGradient>
+        );
+    }
+
+    // Fallback
+    return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4F378A" />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
+    container: { flex: 1 },
+    loadingContainer: {
         flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
-    // ── Glow Blobs ──
+    // ── Blobs ──
     blobLayer: {
         ...StyleSheet.absoluteFillObject,
         zIndex: 0,
@@ -156,168 +238,210 @@ const styles = StyleSheet.create({
     blob: {
         position: 'absolute',
         borderRadius: 999,
-        opacity: 0.5,
+        opacity: 0.45,
     },
-    blobPurpleTopLeft: {
-        width: 380,
-        height: 380,
-        backgroundColor: '#E9DDFF', // primary-fixed
-        top: '-10%',
-        left: '-10%',
+    blobPurple: {
+        width: 350,
+        height: 350,
+        backgroundColor: '#E9DDFF',
+        top: '-8%',
+        left: '-15%',
     },
-    blobGoldBottomRight: {
-        width: 480,
-        height: 480,
-        backgroundColor: '#FFDF93', // tertiary-fixed
-        bottom: '-10%',
-        right: '-10%',
+    blobGold: {
+        width: 420,
+        height: 420,
+        backgroundColor: '#FFDF93',
+        bottom: '-12%',
+        right: '-15%',
     },
-    blobSecondaryMidRight: {
-        width: 260,
-        height: 260,
-        backgroundColor: '#E9DDFF', // secondary-fixed
-        top: '20%',
-        right: '10%',
+    blobPink: {
+        width: 220,
+        height: 220,
+        backgroundColor: '#FFD6E0',
+        top: '35%',
+        right: '5%',
     },
 
     // ── Content ──
     content: {
         flex: 1,
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+        zIndex: 1,
+    },
+
+    // ── Mascot ──
+    mascotWrap: {
+        alignItems: 'center',
+        marginBottom: 12,
+        position: 'relative',
+    },
+    mascotRing: {
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: Layout.screen.paddingHorizontal,
-        zIndex: 1,
+        shadowColor: '#6750A4',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 24,
+        elevation: 10,
+        borderWidth: 3,
+        borderColor: 'rgba(233,221,255,0.6)',
+    },
+    mascotImage: {
+        width: '88%',
+        height: '88%',
+    },
+    floatingBadge: {
+        position: 'absolute',
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+        elevation: 5,
+    },
+    badgeStar: {
+        top: 2,
+        right: SCREEN_WIDTH * 0.18,
+        backgroundColor: '#FFDF93',
+    },
+    badgeHeart: {
+        bottom: 10,
+        left: SCREEN_WIDTH * 0.16,
+        backgroundColor: '#FFD6E0',
+    },
+    badgeShield: {
+        top: 30,
+        left: SCREEN_WIDTH * 0.14,
+        backgroundColor: '#E9DDFF',
     },
 
     // ── Title ──
     titleArea: {
         alignItems: 'center',
-        marginBottom: 32,
+        marginBottom: 36,
     },
-    title: {
-        ...Typography.child.hero,
-        color: Colors.child.primary,
+    appName: {
+        fontSize: 34,
+        fontWeight: '800',
+        color: '#4F378A',
+        letterSpacing: -0.5,
         marginBottom: 8,
     },
-    subtitle: {
-        ...Typography.child.subtitle,
-        color: Colors.child.textSecondary,
+    tagline: {
+        fontSize: 16,
+        color: '#7A7582',
+        textAlign: 'center',
+        lineHeight: 24,
     },
 
-    // ── Mascot ──
-    mascotContainer: {
-        width: 280,
-        height: 280,
-        position: 'relative',
-        marginBottom: 48,
+    // ── Cards ──
+    actionsArea: {
+        gap: 14,
+        marginBottom: 20,
     },
-    mascotCircle: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 140,
-        backgroundColor: '#E6E0E9', // surface-container-highest
+    primaryCard: {
+        borderRadius: 20,
         overflow: 'hidden',
-        alignItems: 'center',
-        justifyContent: 'center',
-        // Subtle shadow like the reference
-        shadowColor: '#6750A4',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
+        shadowColor: '#4F378A',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
         elevation: 8,
     },
-    mascotImage: {
-        width: '92%',
-        height: '92%',
+    cardGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 20,
+        gap: 14,
     },
-    floatingIcon: {
-        position: 'absolute',
+    cardIconWrap: {
         width: 52,
         height: 52,
-        borderRadius: 26,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
+    },
+    cardTextWrap: {
+        flex: 1,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    cardDesc: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.7)',
+        lineHeight: 18,
+    },
+
+    secondaryCard: {
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#765B00',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.12,
-        shadowRadius: 8,
+        shadowRadius: 12,
         elevation: 5,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,223,147,0.5)',
     },
-    starIcon: {
-        top: -8,
-        right: -8,
-        backgroundColor: '#FFDF93', // tertiary-fixed
+    secondaryInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 20,
+        gap: 14,
     },
-    toyIcon: {
-        bottom: 12,
-        left: -12,
-        backgroundColor: '#E9DDFF', // primary-fixed
-    },
-
-    // ── Start Button (3D) ──
-    buttonWrapper: {
-        width: '100%',
-        paddingHorizontal: 16,
-        marginBottom: 32,
-    },
-    startButton: {
-        width: '100%',
-        backgroundColor: Colors.child.primary,
-        borderRadius: 32,
-        paddingVertical: 22,
-        paddingHorizontal: 32,
+    qrIconWrap: {
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        backgroundColor: '#FFF6E0',
         alignItems: 'center',
         justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        // Shadow
-        shadowColor: Colors.child.primary,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 10,
     },
-    btnDepthBorder: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        height: '100%',
-        borderRadius: 32,
-        borderBottomWidth: 8,
-        borderBottomColor: 'rgba(0,0,0,0.2)',
+    secondaryTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1D1B20',
+        marginBottom: 4,
     },
-    btnTopShine: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        height: '100%',
-        borderRadius: 32,
-        borderTopWidth: 4,
-        borderTopColor: 'rgba(255,255,255,0.2)',
-    },
-    btnContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-        zIndex: 1,
-    },
-    startButtonText: {
-        ...Typography.child.title,
-        color: Colors.shared.white,
-        fontSize: 24,
+    secondaryDesc: {
+        fontSize: 13,
+        color: '#7A7582',
+        lineHeight: 18,
     },
 
-    // ── Parent Link ──
-    parentLink: {
+    // ── Footer ──
+    footer: {
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    footerLine: {
+        width: 60,
+        height: 2,
+        backgroundColor: 'rgba(203,196,210,0.4)',
+        borderRadius: 1,
+        marginBottom: 12,
+    },
+    footerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        paddingVertical: 12,
+        gap: 6,
     },
-    parentLinkText: {
-        ...Typography.parent.subtitle,
-        color: '#7A7582', // outline color
+    footerText: {
+        fontSize: 12,
+        color: '#9A929E',
     },
 });

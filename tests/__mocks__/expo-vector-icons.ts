@@ -1,0 +1,13 @@
+export const Ionicons = 'Ionicons';
+export const FontAwesome = 'FontAwesome';
+export const MaterialIcons = 'MaterialIcons';
+export const MaterialCommunityIcons = 'MaterialCommunityIcons';
+export const AntDesign = 'AntDesign';
+export const Entypo = 'Entypo';
+export const EvilIcons = 'EvilIcons';
+export const Feather = 'Feather';
+export const FontAwesome5 = 'FontAwesome5';
+export const Foundation = 'Foundation';
+export const Octicons = 'Octicons';
+export const SimpleLineIcons = 'SimpleLineIcons';
+export const Zocial = 'Zocial';

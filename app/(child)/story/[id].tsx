@@ -18,26 +18,19 @@ import Layout from '../../../constants/Layout';
 import { useStory, logStoryActivity } from '../../../services/api/hooks';
 import useAuthStore from '../../../store/useAuthStore';
 import { getBiDiStyle, isArabic, formatBiDiText } from '../../../services/utils/bidi';
+import { useSessionWriter } from '../../../services/api/sessions';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const storyTemplates: Record<string, { text: string; emoji: string }[]> = {
-    'default': [
-        { text: 'Once upon a time, in a land not so far away, there was a wonderful adventure waiting to begin.', emoji: '🌟' },
-        { text: 'Our hero looked around with wide eyes, ready to explore every corner of this magical world.', emoji: '🗺️' },
-        { text: 'A friendly creature appeared and smiled. "Follow me," it said, "I will show you something amazing!"', emoji: '🦊' },
-        { text: 'Together they discovered a secret place full of wonder and joy, where every dream could come true.', emoji: '✨' },
-        { text: 'And so, with a happy heart, our hero knew that the greatest adventures are the ones we share with friends.', emoji: '💫' },
-    ],
-};
-
-function getStoryPages(title: string): { text: string; emoji: string }[] {
-    const templates = storyTemplates['default'];
-    return templates.map((page, i) => ({
-        ...page,
-        emoji: [
-            '📖', '🌟', '🦋', '🌈', '💫', '🎉',
-        ][i % 6],
+function splitContentToPages(contentText: string | undefined, title: string): { text: string; emoji: string }[] {
+    const emojis = ['📖', '🌟', '🦋', '🌈', '💫', '🎉', '✨', '🌸', '🦊', '🌙'];
+    if (!contentText || contentText.trim().length === 0) {
+        return [{ text: 'This story is coming soon!', emoji: '📖' }];
+    }
+    const paragraphs = contentText.split('\n\n').filter(p => p.trim().length > 0);
+    return paragraphs.map((text, i) => ({
+        text: text.trim(),
+        emoji: emojis[i % emojis.length],
     }));
 }
 
@@ -48,22 +41,32 @@ export default function StoryScreen() {
     const { data: content, isLoading, error } = useStory(id as string);
     const childData = useAuthStore((s) => s.childData);
     const mountTimeRef = useRef(Date.now());
+    const { openSession, closeSession } = useSessionWriter(
+        childData?.id ?? '',
+        childData?.familyId ?? '',
+        'story',
+        id as string
+    );
 
     useEffect(() => {
         mountTimeRef.current = Date.now();
+        if (childData?.id) openSession();
         return () => {
+            const elapsed = Math.round((Date.now() - mountTimeRef.current) / 1000);
+            if (childData?.id) closeSession(elapsed);
             if (childData?.id && id) {
                 logStoryActivity({
                     childId: childData.id,
                     storyId: id as string,
-                    durationSeconds: Math.floor((Date.now() - mountTimeRef.current) / 1000),
+                    durationSeconds: Math.floor(elapsed),
                 }).catch(() => {});
             }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [childData?.id, id]);
 
     const storyTitle = content?.title || 'Story Time';
-    const pages = getStoryPages(storyTitle);
+    const pages = splitContentToPages(content?.content_text, storyTitle);
     const currentPage = pages[pageIndex];
     const isLastPage = pageIndex === pages.length - 1;
     const isFirstPage = pageIndex === 0;

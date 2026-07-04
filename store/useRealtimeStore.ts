@@ -1,20 +1,22 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RealtimeCommand } from '../services/realtime/types';
+import { RealtimeCommand, HeartbeatEvent } from '../services/realtime/types';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface RealtimeState {
   isConnected: boolean;
   isChildOnline: boolean;
   lastHeartbeatAt: number | null;
+  latestHeartbeat: HeartbeatEvent | null;
   appliedCommandIds: string[];
   pendingCommands: RealtimeCommand[];
   channel: RealtimeChannel | null;
-  
+
   // Actions
   setConnected: (connected: boolean) => void;
   setChildOnline: (online: boolean) => void;
   recordHeartbeat: () => void;
+  setLatestHeartbeat: (hb: HeartbeatEvent) => void;
   addAppliedCommandId: (id: string) => void;
   isCommandApplied: (id: string) => boolean;
   loadAppliedCommandIds: () => Promise<void>;
@@ -36,17 +38,24 @@ export const useRealtimeStore = create<RealtimeState>((set, get) => ({
   isConnected: false,
   isChildOnline: false,
   lastHeartbeatAt: null,
+  latestHeartbeat: null,
   appliedCommandIds: [],
   pendingCommands: [],
   channel: null,
 
   setConnected: (connected) => set({ isConnected: connected }),
-  
+
   setChildOnline: (online) => set({ isChildOnline: online }),
-  
-  recordHeartbeat: () => set({ 
+
+  recordHeartbeat: () => set({
     lastHeartbeatAt: Date.now(),
-    isChildOnline: true 
+    isChildOnline: true
+  }),
+
+  setLatestHeartbeat: (hb) => set({
+    latestHeartbeat: hb,
+    lastHeartbeatAt: Date.now(),
+    isChildOnline: true,
   }),
   
   addAppliedCommandId: (id) => {
@@ -87,6 +96,7 @@ export const useRealtimeStore = create<RealtimeState>((set, get) => ({
     isConnected: false,
     isChildOnline: false,
     lastHeartbeatAt: null,
+    latestHeartbeat: null,
     appliedCommandIds: [],
     pendingCommands: [],
     channel: null

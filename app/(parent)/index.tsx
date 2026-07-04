@@ -12,11 +12,23 @@ import Layout from '../../constants/Layout';
 import Header from '../../components/ui/Header';
 import useSettingsStore from '../../store/useSettingsStore';
 import useSessionStore from '../../store/useSessionStore';
+import useAuthStore from '../../store/useAuthStore';
+import { useRealtimeStore } from '../../store/useRealtimeStore';
+import { useTodaysSessions } from '../../services/api/sessions';
 
 export default function ParentHomeScreen() {
     const router = useRouter();
     const { dailyTimeLimitMinutes, sessionsPerDay } = useSettingsStore();
     const { sessionsUsedToday, elapsedSeconds, isPaused, setPaused } = useSessionStore();
+    const { parentData, children } = useAuthStore();
+    const { isChildOnline, latestHeartbeat } = useRealtimeStore();
+
+    const firstChild = children[0];
+    const { sessions, isLoading: sessionsLoading, error: sessionsError, summary } = useTodaysSessions(
+        firstChild?.id ?? '',
+        parentData?.familyId ?? '',
+        0
+    );
 
     const minutesUsed = Math.floor(elapsedSeconds / 60);
     const sessionsRemaining = Math.max(0, sessionsPerDay - sessionsUsedToday);
@@ -28,9 +40,32 @@ export default function ParentHomeScreen() {
             
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                 <View style={styles.welcomeSection}>
-                    <Text style={styles.welcomeTitle}>Good morning, Alex</Text>
-                    <Text style={styles.welcomeSubtitle}>Here is the daily overview for Leo's device.</Text>
+                    <Text style={styles.welcomeTitle}>
+                        Hello, {parentData?.name?.split(' ')[0] ?? 'there'}
+                    </Text>
+                    <Text style={styles.welcomeSubtitle}>
+                        {firstChild
+                            ? `Here is the daily overview for ${firstChild.name}'s device.`
+                            : 'Add a child to start tracking their activity.'}
+                    </Text>
                 </View>
+
+                {!firstChild && (
+                    <TouchableOpacity
+                        style={styles.addChildCard}
+                        onPress={() => router.push('/auth/qr-pairing')}
+                        activeOpacity={0.85}
+                    >
+                        <View style={styles.iconCircle}>
+                            <Ionicons name="qr-code-outline" size={24} color={Colors.parent.primary} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.addChildTitle}>No child linked yet</Text>
+                            <Text style={styles.addChildSubtitle}>Tap to pair your child's device</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={Colors.parent.primary} />
+                    </TouchableOpacity>
+                )}
 
                 {/* ── Time Today Card ── */}
                 <View style={styles.mainCard}>
@@ -73,6 +108,25 @@ export default function ParentHomeScreen() {
                     </View>
                 </View>
 
+                {/* ── Child Live Status ── */}
+                {firstChild && (
+                    <View style={styles.childStatusCard}>
+                        <View style={styles.childStatusRow}>
+                            <View style={[styles.statusDot, { backgroundColor: isChildOnline ? '#22C55E' : '#94A3B8' }]} />
+                            <Text style={styles.childStatusText}>
+                                {isChildOnline ? 'Online' : 'Offline'}
+                            </Text>
+                        </View>
+                        {isChildOnline && latestHeartbeat && (
+                            <Text style={styles.childActivityText}>
+                                {latestHeartbeat.current_activity
+                                    ? `${latestHeartbeat.current_activity} · ${Math.floor(latestHeartbeat.elapsed_seconds / 60)}m`
+                                    : `Active · ${Math.floor(latestHeartbeat.elapsed_seconds / 60)}m`}
+                            </Text>
+                        )}
+                    </View>
+                )}
+
                 {/* ── Quick Actions ── */}
                 <Text style={styles.sectionTitle}>Quick Actions</Text>
                 <View style={styles.actionsContainer}>
@@ -95,7 +149,31 @@ export default function ParentHomeScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* ── Recent Activity ── */}
+                {/* ── Daily Summary (US3) ── */}
+                {summary.totalSeconds > 0 && (
+                    <View style={styles.mainCard}>
+                        <View style={styles.cardHeader}>
+                            <View style={styles.iconCircle}>
+                                <Ionicons name="bar-chart-outline" size={24} color={Colors.parent.primary} />
+                            </View>
+                            <Text style={styles.cardTitle}>Today's Breakdown</Text>
+                        </View>
+                        {(Object.entries(summary.byType) as [string, number][])
+                            .filter(([, secs]) => secs > 0)
+                            .map(([type, secs]) => (
+                                <View key={type} style={styles.summaryRow}>
+                                    <Text style={styles.summaryLabel}>{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
+                                    <Text style={styles.summaryValue}>{Math.floor(secs / 60)}m</Text>
+                                </View>
+                            ))}
+                        <View style={[styles.summaryRow, { marginTop: 8, borderTopWidth: 1, borderTopColor: Colors.parent.border, paddingTop: 8 }]}>
+                            <Text style={[styles.summaryLabel, { fontWeight: '700' }]}>Total</Text>
+                            <Text style={[styles.summaryValue, { fontWeight: '700' }]}>{Math.floor(summary.totalSeconds / 60)}m</Text>
+                        </View>
+                    </View>
+                )}
+
+                {/* ── Recent Activity (FR-005) ── */}
                 <View style={styles.recentHeader}>
                     <Text style={styles.sectionTitle}>Recent Activity</Text>
                     <TouchableOpacity>
@@ -104,18 +182,29 @@ export default function ParentHomeScreen() {
                 </View>
 
                 <View style={styles.activityList}>
-                    <ActivityItem 
-                        icon="play-circle" 
-                        title="Session Started" 
-                        subtitle="10:15 AM • Brain Games" 
-                        tag="Active"
-                    />
-                    <ActivityItem 
-                        icon="stop-circle" 
-                        title="Session Ended" 
-                        subtitle="Yesterday, 4:30 PM • StoryTime" 
-                        value="45m"
-                    />
+                    {sessionsLoading && (
+                        <ActivityItem icon="hourglass-outline" title="Loading sessions…" subtitle="" />
+                    )}
+                    {!sessionsLoading && sessionsError && (
+                        <ActivityItem
+                            icon="cloud-offline-outline"
+                            title="Activity history unavailable"
+                            subtitle="We'll show this once it's back online."
+                        />
+                    )}
+                    {!sessionsLoading && !sessionsError && sessions.length === 0 && (
+                        <ActivityItem icon="moon-outline" title="No activity yet today" subtitle="" />
+                    )}
+                    {!sessionsLoading && !sessionsError && sessions.map((s) => (
+                        <ActivityItem
+                            key={s.id}
+                            icon={s.ended_at ? 'stop-circle' : 'play-circle'}
+                            title={s.activity_type.charAt(0).toUpperCase() + s.activity_type.slice(1)}
+                            subtitle={new Date(s.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            tag={s.status === 'active' ? 'Live' : undefined}
+                            value={s.elapsed_seconds > 0 ? `${Math.floor(s.elapsed_seconds / 60)}m` : undefined}
+                        />
+                    ))}
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -162,6 +251,26 @@ const styles = StyleSheet.create({
     welcomeSubtitle: {
         ...Typography.parent.body,
         color: Colors.parent.textSecondary,
+    },
+    addChildCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Layout.spacing.md,
+        backgroundColor: Colors.parent.surface,
+        borderRadius: Layout.radius.xl,
+        padding: Layout.spacing.lg,
+        borderWidth: 1,
+        borderColor: Colors.parent.border,
+        marginBottom: Layout.spacing.lg,
+    },
+    addChildTitle: {
+        ...Typography.parent.subtitle,
+        color: Colors.parent.textPrimary,
+    },
+    addChildSubtitle: {
+        ...Typography.parent.caption,
+        color: Colors.parent.textSecondary,
+        marginTop: 2,
     },
     mainCard: {
         backgroundColor: Colors.parent.surface,
@@ -353,5 +462,50 @@ const styles = StyleSheet.create({
     activityValue: {
         ...Typography.parent.body,
         color: Colors.parent.textSecondary,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    summaryLabel: {
+        ...Typography.parent.body,
+        color: Colors.parent.textSecondary,
+    },
+    summaryValue: {
+        ...Typography.parent.body,
+        color: Colors.parent.textPrimary,
+    },
+    childStatusCard: {
+        backgroundColor: Colors.parent.surface,
+        borderRadius: Layout.radius.lg,
+        padding: Layout.spacing.md,
+        borderWidth: 1,
+        borderColor: Colors.parent.border,
+        marginBottom: Layout.spacing.xl,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Layout.spacing.md,
+    },
+    childStatusRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    childStatusText: {
+        ...Typography.parent.body,
+        fontWeight: '600',
+        color: Colors.parent.textPrimary,
+    },
+    childActivityText: {
+        ...Typography.parent.caption,
+        color: Colors.parent.textSecondary,
+        textTransform: 'capitalize',
     },
 });

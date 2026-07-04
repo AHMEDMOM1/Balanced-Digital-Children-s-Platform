@@ -16,7 +16,7 @@ import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import Header from '../../components/ui/Header';
-import useSettingsStore from '../../store/useSettingsStore';
+import useAuthStore from '../../store/useAuthStore';
 
 // Stitch palette constants
 const S = {
@@ -41,7 +41,7 @@ const S = {
 
 export default function SettingsScreen() {
     const router = useRouter();
-    const { pinCode } = useSettingsStore();
+    const parentData = useAuthStore((s) => s.parentData);
 
     const SettingsItem = ({ icon, title, value, onPress, danger = false, showChevron = true }: any) => (
         <TouchableOpacity
@@ -93,8 +93,8 @@ export default function SettingsScreen() {
                         <Ionicons name="person" size={36} color={S.primary} />
                     </View>
                     <View style={styles.profileInfo}>
-                        <Text style={styles.profileName}>Sarah Jenkins</Text>
-                        <Text style={styles.profileEmail}>sarah.jenkins@example.com</Text>
+                        <Text style={styles.profileName}>{parentData?.name ?? 'Parent'}</Text>
+                        <Text style={styles.profileEmail}>{parentData?.email ?? ''}</Text>
                     </View>
                     <TouchableOpacity style={styles.editPill} onPress={() => router.push('/(parent)/settings-profile' as any)}>
                         <Ionicons name="pencil" size={14} color={S.primary} />
@@ -108,7 +108,7 @@ export default function SettingsScreen() {
                     <SettingsItem
                         icon="lock-closed-outline"
                         title="Change PIN"
-                        value={pinCode.split('').map(() => '●').join('')}
+                        value="••••••"
                         onPress={() => router.push('/(parent)/settings-pin' as any)}
                     />
                     <View style={styles.divider} />

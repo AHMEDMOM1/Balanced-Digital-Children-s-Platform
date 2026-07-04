@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../services/api/hooks';
-import useSettingsStore from '../../store/useSettingsStore';
 
 const S = {
     surface: '#FDF7FF', surfaceLow: '#F8F2FA', surfaceLowest: '#FFFFFF',
@@ -45,12 +44,11 @@ export default function LoginScreen() {
         setIsActionLoading(true);
         try {
             await auth.verifyOtp(email.trim(), code.trim());
-            const { isPinSetup } = useSettingsStore.getState();
-            if (!isPinSetup) {
-                router.replace('/auth/setup-pin');
-            } else {
-                router.replace('/(parent)');
-            }
+            // PIN gates entry to the dashboard; pairing a child happens later
+            // from inside the dashboard ("Add Child"), not before it.
+            const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+            const parentPinHash = await AsyncStorage.getItem('@parent_pin_hash');
+            router.replace(parentPinHash ? '/(parent)' : '/auth/setup-pin');
         } catch (err: any) {
             setLocalError(err.message || 'OTP token is invalid or expired');
         } finally {

@@ -143,8 +143,8 @@ CREATE POLICY "authenticated_read_content_items"
   ON content_items FOR SELECT
   USING (auth.role() = 'authenticated');
 
--- Service role has full access (for seed scripts and Edge Functions)
-CREATE POLICY "service_role_all_content_items"
+-- Service role bypass for seed scripts — named service_write_* per constitution §Data
+CREATE POLICY "service_write_content_items"
   ON content_items FOR ALL
   USING (auth.role() = 'service_role');
 ```
@@ -155,7 +155,8 @@ CREATE POLICY "authenticated_read_categories"
   ON categories FOR SELECT
   USING (auth.role() = 'authenticated');
 
-CREATE POLICY "service_role_all_categories"
+-- Named service_write_* per constitution §Data naming convention
+CREATE POLICY "service_write_categories"
   ON categories FOR ALL
   USING (auth.role() = 'service_role');
 ```

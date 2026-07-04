@@ -10,6 +10,7 @@ import useAuthStore from './useAuthStore';
 import type { RealtimeCommand } from '../services/realtime/types';
 
 export type SessionStatus = 'active' | 'paused' | 'ended';
+export type ActivityType = 'story' | 'game' | 'video' | 'creative';
 
 export interface SessionState {
     isSessionActive: boolean;
@@ -28,6 +29,10 @@ export interface SessionState {
     blockedCategories: string[];
     processedCommandIds: Set<string>;
 
+    // Activity tracking for heartbeat enrichment (US2)
+    currentActivity: ActivityType | null;
+    currentContentId: string | null;
+
     startSession: () => void;
     endSession: () => void;
     updateElapsed: (seconds: number) => void;
@@ -40,6 +45,7 @@ export interface SessionState {
     restoreFromSnapshot: () => Promise<void>;
     applyServerTime: (serverTimestampMs: number) => void;
     applyCommand: (cmd: RealtimeCommand) => void;
+    setCurrentActivity: (activity: ActivityType | null, contentId?: string) => void;
 }
 
 const useSessionStore = create<SessionState>((set, get) => ({
@@ -57,6 +63,9 @@ const useSessionStore = create<SessionState>((set, get) => ({
     status: 'active' as SessionStatus,
     blockedCategories: [],
     processedCommandIds: new Set<string>(),
+
+    currentActivity: null,
+    currentContentId: null,
 
     startSession: () => {
         const now = Date.now();
@@ -103,8 +112,8 @@ const useSessionStore = create<SessionState>((set, get) => ({
                 const childId = useAuthStore.getState().childData?.id ?? 'unknown';
                 sessionManager.save({
                     childId,
-                    contentItemId: 'active',
-                    activityType: 'story',
+                    contentItemId: state.currentContentId ?? 'active',
+                    activityType: state.currentActivity ?? 'story',
                     elapsedSeconds: updated.elapsedSeconds,
                     sessionStartedAt: new Date(state.sessionStartTime ?? Date.now()).toISOString(),
                     lastSavedAt: new Date().toISOString(),
@@ -179,6 +188,11 @@ const useSessionStore = create<SessionState>((set, get) => ({
         const offset = serverTimestampMs - Date.now();
         set({ serverTimeOffset: offset });
     },
+
+    setCurrentActivity: (activity, contentId) => set({
+        currentActivity: activity,
+        currentContentId: contentId ?? null,
+    }),
 
     applyCommand: (cmd: RealtimeCommand) => {
         const state = get();

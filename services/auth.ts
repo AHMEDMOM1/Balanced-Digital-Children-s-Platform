@@ -1,5 +1,6 @@
 import { getClient } from './api/client';
 import { AuthState, Profile, AgeGroup, UserRole } from './api/types';
+import usePairingStore from '../store/usePairingStore';
 
 const STORAGE_KEYS = {
   AUTH_STATE: '@safeplay_auth_state',
@@ -10,7 +11,25 @@ export async function loadAuthState(): Promise<AuthState> {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session || !session.user) {
-    return getUnauthenticatedState();
+    // The QR-paired child device never has a Supabase auth session — it's
+    // intentionally headless (see consume_pairing_token's dropped FK to
+    // auth.users). Fall back to the locally-persisted pairing state so
+    // childData/role still populate (this is what RealtimeProvider,
+    // (child)/_layout.tsx, and useSessionStore.tick() all key off of).
+    const childState = await getChildPairingAuthState();
+    return childState ?? getUnauthenticatedState();
+  }
+
+  if (session.user.app_metadata?.role === 'admin') {
+    return {
+      isAuthenticated: true,
+      authSource: 'session',
+      role: 'admin',
+      token: session.access_token,
+      parentData: null,
+      childData: null,
+      children: [],
+    };
   }
 
   try {
@@ -30,9 +49,60 @@ export async function loadAuthState(): Promise<AuthState> {
   }
 }
 
+// Headless child identity, sourced entirely from local pairing state — no
+// auth.uid() exists for this device, ever, so this can never come from a
+// Supabase session. name/ageGroup are filled in lazily once a profile fetch
+// (via the anon-callable get_child_profile RPC) succeeds elsewhere.
+async function getChildPairingAuthState(): Promise<AuthState | null> {
+  await usePairingStore.getState().loadPairingState();
+  const { pairingState } = usePairingStore.getState();
+  if (!pairingState) return null;
+
+  return {
+    isAuthenticated: true,
+    authSource: 'pairing',
+    role: 'child',
+    token: null,
+    parentData: null,
+    childData: {
+      id: pairingState.child_id,
+      name: '',
+      // family_id IS the parent's own id by this app's convention (see
+      // buildAuthStateFromSession below) — use it rather than parent_id,
+      // which child-scan.tsx historically saved as '' (now fixed there too,
+      // but this avoids requiring already-paired devices to re-pair).
+      familyId: pairingState.family_id || pairingState.parent_id,
+      ageGroup: null,
+    },
+    children: [],
+  };
+}
+
+// profiles.family_id defaults to a random UUID at creation time (DB-side),
+// but every parent_*_pairing_tokens / sessions RLS policy and all app code
+// assumes a parent's family_id equals their own id. Self-heal on every
+// login/load so this never silently drifts again.
+async function ensureParentFamilyId(profile: Profile): Promise<Profile> {
+  if (profile.role !== 'parent' || profile.family_id === profile.id) return profile;
+  const supabase = getClient();
+  const { data: updated, error } = await supabase
+    .from('profiles')
+    .update({ family_id: profile.id })
+    .eq('id', profile.id)
+    .select()
+    .single();
+  if (error || !updated) {
+    console.warn('[auth] ensureParentFamilyId failed', error?.message);
+    return profile;
+  }
+  console.debug('[auth] ensureParentFamilyId corrected family_id', { id: profile.id });
+  return updated as Profile;
+}
+
 function getUnauthenticatedState(): AuthState {
   return {
     isAuthenticated: false,
+    authSource: null,
     role: null,
     token: null,
     parentData: null,
@@ -41,8 +111,9 @@ function getUnauthenticatedState(): AuthState {
   };
 }
 
-async function buildAuthStateFromSession(token: string, profile: Profile): Promise<AuthState> {
+async function buildAuthStateFromSession(token: string, rawProfile: Profile): Promise<AuthState> {
   const supabase = getClient();
+  const profile = await ensureParentFamilyId(rawProfile);
   const isParent = profile.role === 'parent';
 
   let childrenList: any[] = [];
@@ -63,6 +134,7 @@ async function buildAuthStateFromSession(token: string, profile: Profile): Promi
 
   return {
     isAuthenticated: true,
+    authSource: 'session',
     role: profile.role,
     token,
     parentData: isParent ? {
@@ -134,50 +206,6 @@ export async function logout(): Promise<void> {
   await supabase.auth.signOut();
 }
 
-export async function generateFamilyCode(): Promise<{ code: string; expiresAt: string }> {
-  const supabase = getClient();
-  const { data: code, error } = await supabase.rpc('generate_family_code');
-
-  if (error || !code) {
-    throw new Error(error?.message || 'Could not generate family code');
-  }
-
-  return {
-    code,
-    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-  };
-}
-
-export async function redeemFamilyCode(code: string, childName: string, ageGroup: AgeGroup): Promise<AuthState> {
-  const supabase = getClient();
-
-  const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-  if (authError || !authData.session) {
-    throw new Error(authError?.message || 'Child registration connection failed');
-  }
-
-  const { data, error } = await supabase.rpc('redeem_family_code', {
-    p_code: code,
-    p_child_name: childName,
-    p_age_group: ageGroup
-  });
-
-  if (error || !data) {
-    await supabase.auth.signOut();
-    throw new Error(error?.message || 'Failed to redeem family code');
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', authData.session.user.id)
-    .single();
-
-  if (!profile) throw new Error('Child profile creation confirmation failed.');
-
-  return buildAuthStateFromSession(authData.session.access_token, profile);
-}
-
 export async function verifyParentPin(pin: string): Promise<boolean> {
   const supabase = getClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -208,6 +236,20 @@ export async function updateParentPin(newPin: string): Promise<void> {
     .eq('id', user.id);
 
   if (error) throw new Error(error.message);
+}
+
+export async function updateParentName(fullName: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = getClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Not authenticated' };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ full_name: fullName })
+    .eq('id', user.id);
+
+  if (error) return { success: false, error: error.message };
+  return { success: true };
 }
 
 async function hashPinSha256(pin: string): Promise<string> {

@@ -20,6 +20,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { useDailyStats, useLiveTodayStats } from '../../services/api/reports';
 import { DailyStats, ReportRange } from '../../services/api/types';
 import { captureAndShare } from '../../services/export/captureReport';
+import { getClient } from '../../services/api/client';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -62,6 +63,9 @@ export default function ReportsScreen() {
   const [showComparison, setShowComparison] = useState(false);
   const reportViewRef = useRef<View>(null!);
   const [isExporting, setIsExporting] = useState(false);
+  const [showContentDetail, setShowContentDetail] = useState(false);
+  const [contentDetails, setContentDetails] = useState<Array<{ title: string; type: string; total_seconds: number }>>([])
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   const { data: stats, isLoading, error } = useDailyStats(childId, range);
   const { todayStats, isLive } = useLiveTodayStats(childId);
@@ -240,6 +244,107 @@ export default function ReportsScreen() {
                 </View>
               ))}
             </View>
+
+            {/* ── Content Detail (per-item) ── */}
+            <TouchableOpacity
+              style={styles.detailToggle}
+              onPress={async () => {
+                const next = !showContentDetail;
+                setShowContentDetail(next);
+                if (next && contentDetails.length === 0 && childId) {
+                  setIsLoadingDetail(true);
+                  try {
+                    const { from, to } = (() => {
+                      const today = new Date();
+                      if (range === 'today') {
+                        const s = today.toLocaleDateString('en-CA');
+                        return { from: s, to: s };
+                      }
+                      if (range === 'week') {
+                        const f = new Date(today);
+                        f.setDate(today.getDate() - 6);
+                        return { from: f.toLocaleDateString('en-CA'), to: today.toLocaleDateString('en-CA') };
+                      }
+                      const f = new Date(today);
+                      f.setDate(today.getDate() - 29);
+                      return { from: f.toLocaleDateString('en-CA'), to: today.toLocaleDateString('en-CA') };
+                    })();
+                    const client = getClient();
+                    const { data: sessions } = await client
+                      .from('sessions')
+                      .select('activity_type, elapsed_seconds, content_item_id, content_items!inner(title, type)')
+                      .eq('child_id', childId)
+                      .gte('started_at', `${from}T00:00:00`)
+                      .lte('started_at', `${to}T23:59:59`)
+                      .in('status', ['completed', 'paused']);
+                    if (sessions && sessions.length > 0) {
+                      const map = new Map<string, { title: string; type: string; total_seconds: number }>();
+                      sessions.forEach((s: any) => {
+                        const key = s.content_item_id || s.activity_type;
+                        const title = s.content_items?.title || s.activity_type;
+                        const type = s.content_items?.type || s.activity_type;
+                        const existing = map.get(key);
+                        if (existing) {
+                          existing.total_seconds += s.elapsed_seconds || 0;
+                        } else {
+                          map.set(key, { title, type, total_seconds: s.elapsed_seconds || 0 });
+                        }
+                      });
+                      setContentDetails(
+                        [...map.values()].sort((a, b) => b.total_seconds - a.total_seconds)
+                      );
+                    }
+                  } catch {} finally {
+                    setIsLoadingDetail(false);
+                  }
+                }
+              }}
+            >
+              <Ionicons
+                name={showContentDetail ? 'chevron-up-outline' : 'list-outline'}
+                size={20}
+                color={Colors.parent.primary}
+              />
+              <Text style={styles.detailToggleText}>
+                {showContentDetail ? 'Hide Content Detail' : 'View Content Detail'}
+              </Text>
+            </TouchableOpacity>
+
+            {showContentDetail && (
+              <View style={styles.detailCard}>
+                <Text style={styles.sectionTitle}>Content Watched / Played</Text>
+                {isLoadingDetail && (
+                  <ActivityIndicator size="small" color={Colors.parent.primary} style={{ marginVertical: 16 }} />
+                )}
+                {!isLoadingDetail && contentDetails.length === 0 && (
+                  <Text style={styles.stateText}>No individual content data for this period.</Text>
+                )}
+                {!isLoadingDetail && contentDetails.map((item, idx) => {
+                  const emoji = item.type === 'story' ? '📖' : item.type === 'game' ? '🎮' : item.type === 'video' ? '🎬' : '🎨';
+                  const maxDetail = Math.max(...contentDetails.map(d => d.total_seconds), 1);
+                  return (
+                    <View key={idx} style={styles.detailItem}>
+                      <View style={styles.detailItemHeader}>
+                        <Text style={styles.detailEmoji}>{emoji}</Text>
+                        <Text style={styles.detailTitle} numberOfLines={1}>{item.title}</Text>
+                        <Text style={styles.detailValue}>{formatSeconds(item.total_seconds)}</Text>
+                      </View>
+                      <View style={styles.progressBg}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${(item.total_seconds / maxDetail) * 100}%`,
+                              backgroundColor: item.type === 'story' ? '#7C5CFC' : item.type === 'game' ? '#FF6B6B' : item.type === 'video' ? '#494551' : '#FFB800',
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </>
         )}
         {/* ── Child Comparison (visible only if parent has 2+ children) ── */}
@@ -455,5 +560,53 @@ const styles = StyleSheet.create({
   },
   childSelectorTextActive: {
     color: '#FFFFFF',
+  },
+  detailToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+    backgroundColor: Colors.parent.surface,
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  detailToggleText: {
+    ...Typography.parent.body,
+    fontWeight: '600',
+    color: Colors.parent.primary,
+  },
+  detailCard: {
+    backgroundColor: Colors.parent.surface,
+    borderRadius: Layout.radius.xl,
+    padding: Layout.spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.parent.border,
+    marginBottom: Layout.spacing.xl,
+  },
+  detailItem: {
+    marginBottom: Layout.spacing.md,
+  },
+  detailItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 8,
+  },
+  detailEmoji: {
+    fontSize: 16,
+  },
+  detailTitle: {
+    flex: 1,
+    ...Typography.parent.body,
+    fontWeight: '500',
+    color: Colors.parent.textPrimary,
+  },
+  detailValue: {
+    ...Typography.parent.body,
+    color: Colors.parent.textSecondary,
   },
 });
