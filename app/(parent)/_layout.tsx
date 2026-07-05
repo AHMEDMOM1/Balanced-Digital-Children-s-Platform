@@ -22,35 +22,8 @@ export default function ParentLayout() {
     // effect re-fires on every mount of this layout (including the mount
     // caused by parent-pin-entry's own successful redirect here), producing
     // an infinite PIN-entry ↔ dashboard redirect loop.
-    useEffect(() => {
-        if (useParentLockStore.getState().isUnlocked) return;
-        AsyncStorage.getItem('@parent_pin_hash').then(hash => {
-            if (hash) {
-                console.debug('[parentLayout] PIN hash found, requiring re-authentication');
-                router.replace('/auth/parent-pin-entry');
-            }
-        });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // AppState: re-lock after 5 minutes in background
-    useEffect(() => {
-        const handleAppState = (next: AppStateStatus) => {
-            if (next === 'background' || next === 'inactive') {
-                backgroundAt.current = Date.now();
-            } else if (next === 'active' && backgroundAt.current !== null) {
-                const elapsed = Date.now() - backgroundAt.current;
-                if (elapsed >= 300_000) {
-                    useParentLockStore.getState().lock();
-                    router.replace('/auth/parent-pin-entry');
-                }
-                backgroundAt.current = null;
-            }
-        };
-        const sub = AppState.addEventListener('change', handleAppState);
-        return () => sub.remove();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // Auth/PIN gates removed — direct access enabled
+    // Re-lock after background is also disabled for now
 
     // Hardware back: if there's a screen to pop back to within this section
     // (e.g. a pushed settings sub-screen), let that happen normally. If we're

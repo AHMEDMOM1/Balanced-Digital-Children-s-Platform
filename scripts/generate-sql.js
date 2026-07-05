@@ -273,7 +273,7 @@ const SEED_ITEMS = [
     type: 'video',
     category: 'nature',
     min_age: 2, max_age: 4,
-    url: 'https://www.youtube.com/watch?v=bUmUBOcNbQE',
+    url: 'https://www.youtube.com/watch?v=nCPPLhPTAIk',
     thumbnail_url: 'https://picsum.photos/seed/rainrainbow/400/300',
     duration_seconds: 160,
     is_active: true,

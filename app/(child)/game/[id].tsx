@@ -9,19 +9,23 @@ import Typography from '../../../constants/Typography';
 import Layout from '../../../constants/Layout';
 import { useGame, logGameActivity } from '../../../services/api/games';
 import useAuthStore from '../../../store/useAuthStore';
+import { getBiDiStyle, formatBiDiText } from '../../../services/utils/bidi';
 import { useSessionWriter } from '../../../services/api/sessions';
 
 type CountingConfig = {
   type: 'counting';
   question: string;
-  image_url: string;
+  image_url?: string;
   correct_answer: number;
   choices: number[];
+  display?: 'image' | 'interactive';
+  emoji?: string;
 };
 
 type MatchingConfig = {
   type: 'matching';
   pairs: Array<{ item: string; image: string }>;
+  display?: 'columns' | 'quiz';
 };
 
 type SortingConfig = {
@@ -42,7 +46,13 @@ type QuizConfig = {
   questions: QuizQuestion[];
 };
 
-type GameConfig = CountingConfig | MatchingConfig | SortingConfig | QuizConfig;
+type MemoryConfig = {
+  type: 'memory';
+  pairs: Array<{ id: string; emoji: string }>;
+  cols: number;
+};
+
+type GameConfig = CountingConfig | MatchingConfig | SortingConfig | QuizConfig | MemoryConfig;
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams();
@@ -88,12 +98,39 @@ export default function GameScreen() {
   const [quizSelected, setQuizSelected] = useState<number | null>(null);
   const [quizShowFeedback, setQuizShowFeedback] = useState(false);
 
+  // Quiz matching state
+  const [matchRound, setMatchRound] = useState(0);
+  const [matchedPairs, setMatchedPairs] = useState<Set<string>>(new Set());
+  const [matchWrongId, setMatchWrongId] = useState<string | null>(null);
+
+  // Memory game state
+  const [memoryCards, setMemoryCards] = useState<Array<{ id: string; emoji: string; flipped: boolean; matched: boolean }>>([]);
+  const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
+  const [memoryLocked, setMemoryLocked] = useState(false);
+  const [memoryInit, setMemoryInit] = useState(false);
+
   useEffect(() => {
     if (game?.game_type === 'sorting') {
       setSortingAvailable((game.config_json as SortingConfig).items);
       setSortingCurrent([]);
     }
   }, [game]);
+
+  useEffect(() => {
+    if (game?.game_type === 'memory' && !memoryInit) {
+      const memory = game.config_json as MemoryConfig;
+      const cards = memory.pairs.flatMap(p => [
+        { id: p.id, emoji: p.emoji, flipped: false, matched: false },
+        { id: p.id, emoji: p.emoji, flipped: false, matched: false },
+      ]);
+      for (let i = cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+      }
+      setMemoryCards(cards);
+      setMemoryInit(true);
+    }
+  }, [game, memoryInit]);
 
   if (isLoading) {
     return (
@@ -233,6 +270,47 @@ export default function GameScreen() {
     }
   };
 
+  const handleMemoryFlip = (index: number) => {
+    if (memoryLocked) return;
+    if (memoryCards[index].flipped || memoryCards[index].matched) return;
+    if (flippedIndices.length === 2) return;
+
+    const newCards = [...memoryCards];
+    newCards[index] = { ...newCards[index], flipped: true };
+    setMemoryCards(newCards);
+
+    const newFlipped = [...flippedIndices, index];
+    setFlippedIndices(newFlipped);
+
+    if (newFlipped.length === 2) {
+      setMemoryLocked(true);
+      const first = memoryCards[newFlipped[0]];
+      const second = memoryCards[newFlipped[1]];
+      if (first.id === second.id) {
+        setTimeout(() => {
+          const matchedCards = [...memoryCards];
+          matchedCards[newFlipped[0]] = { ...matchedCards[newFlipped[0]], matched: true };
+          matchedCards[newFlipped[1]] = { ...matchedCards[newFlipped[1]], matched: true };
+          setMemoryCards(matchedCards);
+          setFlippedIndices([]);
+          setMemoryLocked(false);
+          if (matchedCards.every(c => c.matched)) {
+            setTimeout(handleWin, 500);
+          }
+        }, 400);
+      } else {
+        setTimeout(() => {
+          const resetCards = [...memoryCards];
+          resetCards[newFlipped[0]] = { ...resetCards[newFlipped[0]], flipped: false };
+          resetCards[newFlipped[1]] = { ...resetCards[newFlipped[1]], flipped: false };
+          setMemoryCards(resetCards);
+          setFlippedIndices([]);
+          setMemoryLocked(false);
+        }, 1000);
+      }
+    }
+  };
+
   // ── Win Screen ──
   if (won) {
     return (
@@ -262,6 +340,7 @@ export default function GameScreen() {
   // ── Counting Game ──
   if (game.game_type === 'counting') {
     const counting = config as CountingConfig;
+    const isInteractive = counting.display === 'interactive';
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
@@ -278,17 +357,37 @@ export default function GameScreen() {
 
         <View style={styles.content}>
           <View style={styles.questionSection}>
-            <Text style={styles.question}>{counting.question}</Text>
+            <Text style={[styles.question, getBiDiStyle(counting.question)]}>{formatBiDiText(counting.question)}</Text>
             <Text style={styles.subQuestion}>Count them all!</Text>
           </View>
 
           <Animated.View entering={FadeInDown.duration(500)} style={styles.gameCard}>
-            <Image
-              source={{ uri: counting.image_url }}
-              style={styles.gameImage}
-              resizeMode="contain"
-              accessibilityLabel={counting.question}
-            />
+            {isInteractive && counting.emoji ? (
+              <View style={styles.interactiveGrid}>
+                {Array.from({ length: counting.correct_answer }, (_, i) => (
+                  <Animated.View
+                    key={i}
+                    entering={BounceIn.delay(i * 80).duration(400)}
+                    style={[
+                      styles.interactiveItem,
+                      {
+                        left: `${15 + (i * 23) % 70}%`,
+                        top: `${10 + (i * 17 + i * i * 3) % 75}%`,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.interactiveEmoji}>{counting.emoji}</Text>
+                  </Animated.View>
+                ))}
+              </View>
+            ) : (
+              <Image
+                source={{ uri: counting.image_url || '' }}
+                style={styles.gameImage}
+                resizeMode="contain"
+                accessibilityLabel={counting.question}
+              />
+            )}
             <View style={styles.gameDecor1} />
             <View style={styles.gameDecor2} />
           </Animated.View>
@@ -325,6 +424,93 @@ export default function GameScreen() {
   // ── Matching Game ──
   if (game.game_type === 'matching') {
     const matching = config as MatchingConfig;
+    const isQuiz = matching.display === 'quiz';
+
+    if (isQuiz) {
+      const unmatched = matching.pairs.filter(p => !matchedPairs.has(p.item));
+      const currentTarget = unmatched[matchRound % unmatched.length] || matching.pairs[0];
+      const shuffledOptions = [...matching.pairs].sort(() => Math.random() - 0.5);
+
+      const handleQuizMatch = (item: string) => {
+        if (matchWrongId) return;
+        if (item === currentTarget.item) {
+          const next = new Set(matchedPairs);
+          next.add(item);
+          setMatchedPairs(next);
+          setMatchRound(prev => prev + 1);
+          if (next.size === matching.pairs.length) {
+            setTimeout(handleWin, 500);
+          }
+        } else {
+          setMatchWrongId(item);
+          setTimeout(() => setMatchWrongId(null), 600);
+        }
+      };
+
+      return (
+        <SafeAreaView style={styles.safe}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn3D} activeOpacity={0.7}>
+              <Ionicons name="home" size={28} color={Colors.child.primary} />
+            </TouchableOpacity>
+            <View style={styles.starsPill}>
+              <Ionicons name="star" size={24} color={Colors.child.tertiaryFixedDim} />
+              <Text style={{ fontSize: 14, color: Colors.child.primary, fontWeight: '700' }}>
+                {matchedPairs.size}/{matching.pairs.length}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.headerBtn3D} activeOpacity={0.7}>
+              <Ionicons name="help-circle-outline" size={28} color={Colors.child.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.content}>
+            <View style={styles.questionSection}>
+              <Text style={styles.subQuestion}>Find the match!</Text>
+            </View>
+
+            <Animated.View entering={FadeInDown.duration(400)} style={styles.matchTargetCard}>
+              <Text style={styles.matchTargetLabel}>{formatBiDiText(currentTarget.item)}</Text>
+              <View style={styles.matchTargetImageWrap}>
+                <Image
+                  source={{ uri: currentTarget.image }}
+                  style={styles.matchTargetImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </Animated.View>
+
+            <View style={styles.matchOptionsGrid}>
+              {shuffledOptions.map(p => {
+                const isWrong = matchWrongId === p.item;
+                return (
+                  <TouchableOpacity
+                    key={p.item}
+                    onPress={() => handleQuizMatch(p.item)}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.matchOptionBtn,
+                      matchedPairs.has(p.item) && styles.matchOptionDone,
+                      isWrong && styles.matchOptionWrong,
+                    ]}
+                    disabled={matchedPairs.has(p.item)}
+                  >
+                    <Image
+                      source={{ uri: p.image }}
+                      style={styles.matchOptionImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.matchOptionLabel}>{p.item}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+    // Legacy columns matching
     const unmatched = matching.pairs.filter(p => !matchedItems.has(p.item));
     return (
       <SafeAreaView style={styles.safe}>
@@ -395,7 +581,7 @@ export default function GameScreen() {
 
         <View style={styles.content}>
           <View style={styles.questionSection}>
-            <Text style={styles.question}>{sorting.instruction}</Text>
+            <Text style={[styles.question, getBiDiStyle(sorting.instruction)]}>{formatBiDiText(sorting.instruction)}</Text>
           </View>
 
           {/* Current Selection Area */}
@@ -412,6 +598,62 @@ export default function GameScreen() {
             {sortingAvailable.map((item, idx) => (
               <TouchableOpacity key={`avail-${idx}-${item}`} onPress={() => handleSortingTap(item, 'available')} style={styles.sortingBlockAvailable}>
                 <Text style={styles.sortingTextAvailable}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Memory Game ──
+  if (game.game_type === 'memory') {
+    const memory = config as MemoryConfig;
+    const cols = memory.cols || 4;
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn3D} activeOpacity={0.7}>
+            <Ionicons name="home" size={28} color={Colors.child.primary} />
+          </TouchableOpacity>
+          <View style={styles.starsPill}>
+            <Ionicons name="star" size={24} color={Colors.child.tertiaryFixedDim} />
+          </View>
+          <TouchableOpacity style={styles.headerBtn3D} activeOpacity={0.7}>
+            <Ionicons name="help-circle-outline" size={28} color={Colors.child.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.content}>
+          <View style={styles.questionSection}>
+            <Text style={styles.subQuestion}>Find the matching pairs!</Text>
+          </View>
+
+          <View style={[styles.memoryGrid, { flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'center', gap: 8 }]}>
+            {memoryCards.map((card, idx) => (
+              <TouchableOpacity
+                key={idx}
+                onPress={() => handleMemoryFlip(idx)}
+                activeOpacity={0.8}
+                style={[
+                  styles.memoryCard,
+                  {
+                    width: `${Math.floor(85 / cols)}%`,
+                    aspectRatio: 1,
+                  },
+                  card.flipped || card.matched ? styles.memoryCardFlipped : styles.memoryCardDown,
+                  card.matched && styles.memoryCardMatched,
+                ]}
+              >
+                {card.flipped || card.matched ? (
+                  <Animated.View entering={BounceIn.duration(300)} style={styles.memoryCardFront}>
+                    <Text style={styles.memoryCardEmoji}>{card.emoji}</Text>
+                  </Animated.View>
+                ) : (
+                  <View style={styles.memoryCardBack}>
+                    <Ionicons name="help" size={28} color={Colors.child.primaryFixedDim} />
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -441,7 +683,7 @@ export default function GameScreen() {
 
         <View style={styles.content}>
           <View style={styles.questionSection}>
-            <Text style={styles.question}>{currentQ.question}</Text>
+            <Text style={[styles.question, getBiDiStyle(currentQ.question)]}>{formatBiDiText(currentQ.question)}</Text>
           </View>
 
           <View style={styles.quizChoices}>
@@ -461,8 +703,8 @@ export default function GameScreen() {
                     showWrong && styles.answerBtnWrong,
                   ]}
                 >
-                  <Text style={[styles.quizText, showCorrect && styles.answerTextCorrect]}>
-                    {choice}
+                  <Text style={[styles.quizText, showCorrect && styles.answerTextCorrect, getBiDiStyle(choice)]}>
+                    {formatBiDiText(choice)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -812,5 +1054,133 @@ const styles = StyleSheet.create({
     ...Typography.child.hero,
     fontSize: 24,
     color: Colors.child.textPrimary,
+  },
+
+  // ── Interactive Counting Styles ──
+  interactiveGrid: {
+    width: '100%',
+    height: 200,
+    position: 'relative',
+  },
+  interactiveItem: {
+    position: 'absolute',
+  },
+  interactiveEmoji: {
+    fontSize: 40,
+  },
+
+  // ── Quiz Matching Styles ──
+  matchTargetCard: {
+    backgroundColor: Colors.child.surfaceContainerLowest,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    borderWidth: 4,
+    borderColor: Colors.child.primaryFixed,
+    shadowColor: Colors.child.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  matchTargetLabel: {
+    ...Typography.child.hero,
+    fontSize: 28,
+    color: Colors.child.primary,
+    marginBottom: 12,
+  },
+  matchTargetImageWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: Colors.child.surfaceVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  matchTargetImage: {
+    width: '100%',
+    height: '100%',
+  },
+  matchOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: Layout.spacing.xl,
+  },
+  matchOptionBtn: {
+    width: '45%',
+    backgroundColor: Colors.child.surfaceContainerLowest,
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+    borderBottomWidth: 6,
+    borderBottomColor: Colors.child.outline,
+    shadowColor: Colors.child.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  matchOptionDone: {
+    opacity: 0.4,
+  },
+  matchOptionWrong: {
+    backgroundColor: Colors.child.errorContainer,
+    borderBottomColor: Colors.child.error,
+  },
+  matchOptionImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+  },
+  matchOptionLabel: {
+    ...Typography.child.subtitle,
+    color: Colors.child.textPrimary,
+  },
+
+  // ── Memory Game Styles ──
+  memoryGrid: {
+    width: '100%',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  memoryCard: {
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    maxWidth: 80,
+    maxHeight: 80,
+  },
+  memoryCardDown: {
+    backgroundColor: Colors.child.primaryFixed,
+    borderWidth: 3,
+    borderColor: Colors.child.primaryFixedDim,
+  },
+  memoryCardFlipped: {
+    backgroundColor: Colors.child.surfaceContainerLowest,
+    borderWidth: 3,
+    borderColor: Colors.child.primaryContainer,
+  },
+  memoryCardMatched: {
+    backgroundColor: '#D4EDDA',
+    borderColor: '#4CAF50',
+    opacity: 0.7,
+  },
+  memoryCardFront: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memoryCardEmoji: {
+    fontSize: 32,
+  },
+  memoryCardBack: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

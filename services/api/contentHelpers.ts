@@ -2,7 +2,7 @@ import { getClient } from './client';
 import type { ContentItem, ContentType } from './types';
 
 export const selectExtendedColumns =
-  'id,title,type,category,min_age,max_age,url,thumbnail_url,created_at,duration_seconds,content_text,assets_url,game_type,config_json';
+  'id,title,type,category,min_age,max_age,url,thumbnail_url,created_at,duration_seconds,content_text,assets_url,game_type,config_json,page_images';
 
 export const AGE_GROUP_RANGES: Record<string, { min: number; max: number }> = {
   '2-4': { min: 2, max: 4 },

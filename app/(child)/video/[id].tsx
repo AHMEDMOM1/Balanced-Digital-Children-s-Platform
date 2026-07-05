@@ -3,7 +3,7 @@
  * Matches Stitch video gallery card style with immersive player.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import Colors from '../../../constants/Colors';
 import Typography from '../../../constants/Typography';
 import Layout from '../../../constants/Layout';
 import { useContentById, useVideos } from '../../../services/api/hooks';
+import { getBiDiStyle, formatBiDiText } from '../../../services/utils/bidi';
 import useAuthStore from '../../../store/useAuthStore';
 import { useSessionWriter } from '../../../services/api/sessions';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -102,23 +103,30 @@ export default function VideoPlayerScreen() {
                                 </View>
                             ) : (
                                 <View style={[styles.playerArea, { backgroundColor: videoStyle.bg }]}>
+                                    {video.thumbnail_url ? (
+                                        <Image source={{ uri: video.thumbnail_url }} style={styles.playerThumbImage} />
+                                    ) : (
+                                        <Text style={styles.playerEmoji}>🎬</Text>
+                                    )}
                                     <TouchableOpacity
                                         style={styles.backFloating}
                                         onPress={() => router.back()}
                                     >
                                         <Ionicons name="arrow-back" size={22} color="#FFF" />
                                     </TouchableOpacity>
-
-                                    <Text style={styles.playerEmoji}>{video.thumbnail_url || '🎬'}</Text>
-                                    <Text style={styles.stateText}>Video not available</Text>
+                                    <View style={styles.playOverlay}>
+                                        <View style={styles.playCircle}>
+                                            <Ionicons name="play" size={48} color="#FFF" />
+                                        </View>
+                                    </View>
                                 </View>
                             )}
                         </Animated.View>
 
                         {/* ── Video Info ── */}
                         <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.infoCard}>
-                            <Text style={[styles.videoTitle, { color: videoStyle.titleColor }]}>
-                                {video.title}
+                            <Text style={[styles.videoTitle, { color: videoStyle.titleColor }, getBiDiStyle(video.title)]}>
+                                {formatBiDiText(video.title)}
                             </Text>
                             <Text style={styles.videoDesc}>{video.category}</Text>
 
@@ -142,10 +150,14 @@ export default function VideoPlayerScreen() {
                                             onPress={() => router.push(`/(child)/video/${item.id}`)}
                                         >
                                             <View style={styles.relatedThumb}>
-                                                <Text style={styles.relatedEmoji}>{item.thumbnail_url || '🎬'}</Text>
+                                                {item.thumbnail_url ? (
+                                                    <Image source={{ uri: item.thumbnail_url }} style={styles.relatedThumbImage} />
+                                                ) : (
+                                                    <Text style={styles.relatedEmoji}>🎬</Text>
+                                                )}
                                             </View>
                                             <View style={styles.relatedInfo}>
-                                                <Text style={styles.relatedTitle}>{item.title}</Text>
+                                                <Text style={[styles.relatedTitle, getBiDiStyle(item.title)]}>{formatBiDiText(item.title)}</Text>
                                                 <Text style={styles.relatedDuration}>{item.category}</Text>
                                             </View>
                                             <Ionicons name="play-circle" size={32} color={Colors.child.primary} />
@@ -194,6 +206,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
+        borderRadius: 24,
     },
     backFloating: {
         position: 'absolute',
@@ -208,21 +221,27 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     playerEmoji: { fontSize: 72, opacity: 0.6 },
-    playBtn: {
+    playerThumbImage: {
+        width: '100%',
+        height: '100%',
         position: 'absolute',
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: 'rgba(0,0,0,0.35)',
+    },
+    playOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.25)',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 10,
+        zIndex: 5,
     },
-    playerOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.15)',
-        zIndex: 1,
+    playCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
+
 
     // Info
     infoCard: {
@@ -275,6 +294,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#E1D4FD',
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    relatedThumbImage: {
+        width: '100%',
+        height: '100%',
     },
     relatedEmoji: { fontSize: 28 },
     relatedInfo: { flex: 1 },

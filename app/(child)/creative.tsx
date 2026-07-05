@@ -16,7 +16,7 @@ import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useCreative } from '../../services/api/creative';
 import EmptyState from '../../components/ui/EmptyState';
-import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../services/utils/bidi';
 import useAuthStore from '../../store/useAuthStore';
 import { useSessionWriter } from '../../services/api/sessions';
 
@@ -154,7 +154,7 @@ export default function CreativeScreen() {
 
                                         <View style={styles.cardTextArea}>
                                             <Text style={[styles.activityTitle, { color: cStyle.titleColor }, getBiDiStyle(activity.title)]}>
-                                                {activity.title}
+                                                {formatBiDiText(activity.title)}
                                             </Text>
                                         </View>
                                     </TouchableOpacity>

@@ -28,7 +28,7 @@ export function isTokenExpired(payload: QrPayload): boolean {
 
 export function parseManualCode(input: string): string | null {
   const stripped = input.replace(/[-\s]/g, '').toUpperCase();
-  if (stripped.length !== 6) return null;
+  if (!/^\d{6}$/.test(stripped)) return null;
   return stripped;
 }
 

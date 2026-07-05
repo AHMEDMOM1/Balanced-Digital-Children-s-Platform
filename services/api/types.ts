@@ -132,6 +132,7 @@ export interface ContentItem {
   sub_category?: string;
   content_text?: string;
   assets_url?: string;
+  page_images?: string[];
 }
 
 export interface ChildContentPreference {

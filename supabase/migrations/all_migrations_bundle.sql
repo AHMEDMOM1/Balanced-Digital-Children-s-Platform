@@ -468,11 +468,13 @@ CREATE POLICY "Children can acknowledge commands" ON realtime_commands FOR UPDAT
 -- ──────────────────────────────────────────────────────────
 
 ALTER TABLE content_items
-    ADD COLUMN IF NOT EXISTS duration_seconds  integer,
-    ADD COLUMN IF NOT EXISTS content_text      text,
-    ADD COLUMN IF NOT EXISTS assets_url        text,
-    ADD COLUMN IF NOT EXISTS game_type         text,
-    ADD COLUMN IF NOT EXISTS config_json       jsonb;
+  ADD COLUMN IF NOT EXISTS duration_seconds  integer,
+  ADD COLUMN IF NOT EXISTS content_text      text,
+  ADD COLUMN IF NOT EXISTS assets_url        text,
+  ADD COLUMN IF NOT EXISTS game_type         text,
+  ADD COLUMN IF NOT EXISTS config_json       jsonb,
+  ADD COLUMN IF NOT EXISTS sort_order        integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS page_images      text[] DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS categories (
     id          uuid        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -1862,3 +1864,8 @@ $$;
 -- ============================================================
 
 
+
+-- Fix: Allow anon read for headless child device
+DROP POLICY IF EXISTS "authenticated_read_content_items" ON content_items;
+DROP POLICY IF EXISTS "anon_read_content_items" ON content_items;
+CREATE POLICY "anon_read_content_items" ON content_items FOR SELECT USING (is_active = true);

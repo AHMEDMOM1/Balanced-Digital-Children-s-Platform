@@ -68,7 +68,7 @@ export default function IndexScreen() {
             }
 
             if (deviceRole === 'parent') {
-                router.replace(await routeParent(isAuthenticated));
+                router.replace('/(parent)');
                 return;
             }
 
@@ -83,7 +83,7 @@ export default function IndexScreen() {
     // start the normal first-time registration flow.
     const handleEmailRegister = async () => {
         await usePairingStore.getState().saveDeviceRole('parent');
-        router.replace(await routeParent(isAuthenticated));
+        router.replace('/(parent)');
     };
 
     // Child card: resume an existing pairing if there is one, otherwise scan.

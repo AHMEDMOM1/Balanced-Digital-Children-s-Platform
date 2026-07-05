@@ -171,10 +171,14 @@ maybeDescribe('Content Seed Integration Tests (010-content-seed-initial)', () =>
         const cfg = item.config_json as Record<string, unknown>;
         expect(cfg).toHaveProperty('type');
         expect(cfg).toHaveProperty('question');
-        expect(cfg).toHaveProperty('image_url');
         expect(cfg).toHaveProperty('correct_answer');
         expect(cfg).toHaveProperty('choices');
         expect(Array.isArray(cfg.choices)).toBe(true);
+        if (cfg.display === 'interactive') {
+          expect(cfg).toHaveProperty('emoji');
+        } else {
+          expect(cfg).toHaveProperty('image_url');
+        }
       }
     });
 

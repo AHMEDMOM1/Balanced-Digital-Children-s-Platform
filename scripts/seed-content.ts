@@ -23,11 +23,12 @@ type SeedItem = {
   min_age: number;
   max_age: number;
   thumbnail_url: string;
+  page_images?: string[];
   url?: string;
   duration_seconds?: number;
   content_text?: string;
   assets_url?: string;
-  game_type?: 'counting' | 'matching';
+  game_type?: 'counting' | 'matching' | 'memory';
   config_json?: Record<string, unknown>;
   // Seed content is inserted already-published — it's not going through the
   // admin draft → submit → review workflow, so it must be visible to
@@ -70,7 +71,7 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'animals',
     min_age: 2,
     max_age: 4,
-    url: 'https://www.youtube.com/watch?v=xtp9F-VVnXk',
+    url: 'https://www.youtube.com/watch?v=t99ULJjCsaM',
     thumbnail_url: 'https://picsum.photos/seed/animalsounds/400/300',
     duration_seconds: 240,
     status: 'published',
@@ -81,7 +82,7 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'math',
     min_age: 2,
     max_age: 4,
-    url: 'https://www.youtube.com/watch?v=21J91XHJnHU',
+    url: 'https://www.youtube.com/watch?v=AnoNb2OMQ6s',
     thumbnail_url: 'https://picsum.photos/seed/colorshapes/400/300',
     duration_seconds: 150,
     status: 'published',
@@ -103,7 +104,7 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'nature',
     min_age: 5,
     max_age: 7,
-    url: 'https://www.youtube.com/watch?v=fNkk9_h0kI4',
+    url: 'https://www.youtube.com/watch?v=6jQ7y_qQYUA',
     thumbnail_url: 'https://picsum.photos/seed/recycle/400/300',
     duration_seconds: 200,
     status: 'published',
@@ -114,7 +115,7 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'nature',
     min_age: 8,
     max_age: 10,
-    url: 'https://www.youtube.com/watch?v=OUN9o-mLMII',
+    url: 'https://www.youtube.com/watch?v=lcl8uB2AWM0',
     thumbnail_url: 'https://picsum.photos/seed/shapes/400/300',
     duration_seconds: 300,
     status: 'published',
@@ -125,7 +126,7 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'science',
     min_age: 8,
     max_age: 10,
-    url: 'https://www.youtube.com/watch?v=NIvbzZB-zBE',
+    url: 'https://www.youtube.com/watch?v=BkGpX4ca5I8',
     thumbnail_url: 'https://picsum.photos/seed/plantgrow/400/300',
     duration_seconds: 320,
     status: 'published',
@@ -138,7 +139,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'animals',
     min_age: 2,
     max_age: 4,
-    thumbnail_url: 'https://picsum.photos/seed/lion/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/friendly-lion-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/lion-savannah/800/600',
+      'https://picsum.photos/seed/rabbit-thorn/800/600',
+      'https://picsum.photos/seed/lion-friends/800/600',
+    ],
     content_text: [
       'Leo the lion lived in a sunny savannah where tall golden grasses swayed in the warm breeze. Every morning he would stretch his big paws and let out a gentle yawn that made the birds scatter from the nearby acacia trees.',
       'One day Leo found a tiny rabbit caught in a thorn bush. Instead of roaring, he used his soft paws to carefully pull each thorn away until the rabbit was free. The rabbit blinked up at him, surprised that the big lion was so gentle.',
@@ -152,7 +158,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'social',
     min_age: 2,
     max_age: 4,
-    thumbnail_url: 'https://picsum.photos/seed/maxshare/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/maxshare-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/acorn-stash/800/600',
+      'https://picsum.photos/seed/hedgehog-winter/800/600',
+      'https://picsum.photos/seed/warm-soup-share/800/600',
+    ],
     content_text: [
       'Max the squirrel had the biggest pile of acorns in the whole forest. He had spent all autumn collecting them one by one and storing them under his favourite oak tree. He was very proud of his acorn mountain.',
       'When winter came, his neighbour Bea the hedgehog knocked on his door. She had not found enough food and her belly was rumbling. Max looked at his huge pile and then at Bea\'s sad eyes.',
@@ -166,7 +177,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'social',
     min_age: 5,
     max_age: 7,
-    thumbnail_url: 'https://picsum.photos/seed/kinddragon/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/kinddragon-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/village-mountain/800/600',
+      'https://picsum.photos/seed/stone-cave/800/600',
+      'https://picsum.photos/seed/dragon-friend/800/600',
+    ],
     content_text: [
       'Everyone in the village was afraid of the dragon on the mountain, even though no one had ever actually seen it breathe fire. Children were told to stay far away and never go near the old stone cave.',
       'One day, a boy named Tomas got lost in a storm and stumbled into the cave to find shelter. Instead of a fearsome beast, he found an old, gentle dragon who was lonely and just wanted a friend to talk to.',
@@ -180,7 +196,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'nature',
     min_age: 5,
     max_age: 7,
-    thumbnail_url: 'https://picsum.photos/seed/littleboat/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/brave-boat-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/harbor-scene/800/600',
+      'https://picsum.photos/seed/stormy-sea-night/800/600',
+      'https://picsum.photos/seed/duck-rescue/800/600',
+    ],
     content_text: [
       'Pip was the smallest boat in the harbor, much tinier than the big fishing ships and tall sailboats around him. He often worried he wasn\'t strong enough to do anything important.',
       'One stormy night, a little duck family got stranded on a rock far from shore. The big boats were too large to reach the shallow water, but Pip was small enough to slip right through.',
@@ -194,7 +215,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'nature',
     min_age: 8,
     max_age: 10,
-    thumbnail_url: 'https://picsum.photos/seed/farm/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/day-farm-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/hen-house-morning/800/600',
+      'https://picsum.photos/seed/garden-tomato/800/600',
+      'https://picsum.photos/seed/farm-evening-stars/800/600',
+    ],
     content_text: [
       'Every summer, Priya visited her grandparents\' farm in the countryside. She loved waking up early to help collect warm eggs from the hen house before breakfast. The hens clucked softly as she reached gently under each one.',
       'After breakfast, Priya helped her grandfather water the vegetable garden. He taught her how to tell when a tomato is ripe by its deep red colour and the way it feels firm but slightly soft between your fingers. She picked six perfect tomatoes for lunch.',
@@ -208,7 +234,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'social',
     min_age: 8,
     max_age: 10,
-    thumbnail_url: 'https://picsum.photos/seed/treasuremap/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/treasure-map-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/attic-old-map/800/600',
+      'https://picsum.photos/seed/lighthouse-coast/800/600',
+      'https://picsum.photos/seed/grandfather-letters/800/600',
+    ],
     content_text: [
       'Jonah and his sister Mia found an old, torn map in their attic with a faded "X" marked near the old lighthouse. They argued the whole bike ride there about who got to dig first.',
       'When they finally found the spot, the box they dug up wasn\'t full of gold — it was full of letters their grandfather had written to their grandmother decades ago, telling her about his dreams for their future family.',
@@ -280,8 +311,9 @@ const SEED_ITEMS: SeedItem[] = [
     thumbnail_url: 'https://picsum.photos/seed/apples/400/300',
     config_json: {
       type: 'counting',
+      display: 'interactive',
       question: 'How many apples are in the basket?',
-      image_url: 'https://picsum.photos/seed/applebasket/400/300',
+      emoji: '🍎',
       correct_answer: 5,
       choices: [3, 4, 5, 6],
     },
@@ -297,6 +329,7 @@ const SEED_ITEMS: SeedItem[] = [
     thumbnail_url: 'https://picsum.photos/seed/findcolor/400/300',
     config_json: {
       type: 'matching',
+      display: 'quiz',
       pairs: [
         { item: 'Red',    image: 'https://picsum.photos/seed/colorred/200/200' },
         { item: 'Blue',   image: 'https://picsum.photos/seed/colorblue/200/200' },
@@ -350,11 +383,34 @@ const SEED_ITEMS: SeedItem[] = [
     thumbnail_url: 'https://picsum.photos/seed/matchanimals/400/300',
     config_json: {
       type: 'matching',
+      display: 'quiz',
       pairs: [
         { item: 'Dog',    image: 'https://picsum.photos/seed/dog/200/200' },
         { item: 'Cat',    image: 'https://picsum.photos/seed/cat/200/200' },
         { item: 'Rabbit', image: 'https://picsum.photos/seed/rabbit/200/200' },
       ],
+    },
+    status: 'published',
+  },
+  {
+    title: 'Picture Match',
+    type: 'game',
+    game_type: 'memory',
+    category: 'math',
+    min_age: 2,
+    max_age: 10,
+    thumbnail_url: 'https://picsum.photos/seed/memorygame/400/300',
+    config_json: {
+      type: 'memory',
+      pairs: [
+        { id: 'apple', emoji: '🍎' },
+        { id: 'ball', emoji: '⚽' },
+        { id: 'star', emoji: '⭐' },
+        { id: 'heart', emoji: '❤️' },
+        { id: 'moon', emoji: '🌙' },
+        { id: 'flower', emoji: '🌸' },
+      ],
+      cols: 4,
     },
     status: 'published',
   },
@@ -366,7 +422,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'animals',
     min_age: 2,
     max_age: 4,
-    thumbnail_url: 'https://picsum.photos/seed/bellabunny/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/bella-bunny-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/bunny-meadow/800/600',
+      'https://picsum.photos/seed/sunflower-field/800/600',
+      'https://picsum.photos/seed/bunny-mouse-play/800/600',
+    ],
     content_text: [
       'Bella the bunny hopped through the meadow every morning looking for someone to play with. She had soft white fur and the longest ears in the whole field.',
       'One sunny day she heard a tiny squeak behind a big sunflower. It was a little field mouse named Mimi who was too shy to say hello. Bella gently wiggled her nose and said, "Do you want to play hide and seek?"',
@@ -380,7 +441,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'social',
     min_age: 2,
     max_age: 4,
-    thumbnail_url: 'https://picsum.photos/seed/helpinghands/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/helping-hands-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/kitchen-cooking/800/600',
+      'https://picsum.photos/seed/stirring-soup/800/600',
+      'https://picsum.photos/seed/family-dinner/800/600',
+    ],
     content_text: [
       'Little Noor loved watching her mother cook in the kitchen. The pots bubbled and the spoons clinked together like tiny bells. One day Mama said, "Would you like to help me?"',
       'Noor carefully washed three tomatoes and put them in a bowl. She stirred the soup slowly while Mama held the handle. When Papa came home, he tasted the soup and said, "This is the best soup I have ever had!"',
@@ -394,7 +460,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'nature',
     min_age: 2,
     max_age: 4,
-    thumbnail_url: 'https://picsum.photos/seed/singingrain/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/singing-rain-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/rainy-window/800/600',
+      'https://picsum.photos/seed/puddle-splash/800/600',
+      'https://picsum.photos/seed/rainbow-sky/800/600',
+    ],
     content_text: [
       'Drip, drop, drip, drop — the rain tapped on the window like tiny fingers playing a drum. Little Sam pressed his nose against the glass and watched the puddles grow in the garden.',
       'When the rain stopped, a beautiful rainbow stretched across the sky. Sam ran outside and splashed in every single puddle, laughing as the water sparkled in the sunlight.',
@@ -410,7 +481,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'science',
     min_age: 5,
     max_age: 7,
-    thumbnail_url: 'https://picsum.photos/seed/curiouscaterpillar/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/caterpillar-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/caterpillar-leaf/800/600',
+      'https://picsum.photos/seed/cocoon-branch/800/600',
+      'https://picsum.photos/seed/butterfly-wings/800/600',
+    ],
     content_text: [
       'Carl the caterpillar had fourteen tiny legs and one enormous curiosity. Every day he asked a new question: Why is the sky blue? Why do leaves fall? Where does the wind come from?',
       'One morning Carl woke up feeling very sleepy. He wrapped himself in a silky cocoon and slept for two whole weeks. When he finally woke up and stretched, he discovered he had two beautiful wings covered in orange and black patterns.',
@@ -424,7 +500,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'social',
     min_age: 5,
     max_age: 7,
-    thumbnail_url: 'https://picsum.photos/seed/newkidschool/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/new-kid-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/empty-classroom/800/600',
+      'https://picsum.photos/seed/drawing-spaceship/800/600',
+      'https://picsum.photos/seed/friends-table/800/600',
+    ],
     content_text: [
       'Yara walked into her new classroom holding her backpack straps tightly. Everyone already had friends and she did not know a single name. She sat at the last desk and opened her notebook quietly.',
       'At break time a boy named Adam noticed Yara drawing a spaceship. "That is amazing!" he said. "Can you teach me how to draw the wings?" Soon three more children gathered around to watch.',
@@ -438,7 +519,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'nature',
     min_age: 5,
     max_age: 7,
-    thumbnail_url: 'https://picsum.photos/seed/riverremember/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/river-remembered-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/mountain-river/800/600',
+      'https://picsum.photos/seed/dry-riverbed/800/600',
+      'https://picsum.photos/seed/beaver-dam/800/600',
+    ],
     content_text: [
       'Deep in the valley there was a river that remembered everything. It remembered every leaf that fell on its surface, every fish that swam in its current, and every child who skipped stones across its water.',
       'One summer, the river began to dry up because the rains did not come. The animals were worried. A young deer named Fawn walked upstream for three days until she found a beaver dam blocking the water.',
@@ -454,7 +540,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'science',
     min_age: 8,
     max_age: 10,
-    thumbnail_url: 'https://picsum.photos/seed/girlrobot/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/girl-robot-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/garage-workshop/800/600',
+      'https://picsum.photos/seed/robot-watering/800/600',
+      'https://picsum.photos/seed/grandma-garden/800/600',
+    ],
     content_text: [
       'Maya spent every afternoon in her garage surrounded by wires, motors, and old computer parts. Her dream was to build a robot that could water her grandmother\'s garden while Grandma rested.',
       'After six weeks of trying and failing, Maya finally got her robot to roll forward, turn left, and spray water from a small nozzle. It was not perfect — it sometimes watered the cat instead of the flowers — but it worked.',
@@ -468,7 +559,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'social',
     min_age: 8,
     max_age: 10,
-    thumbnail_url: 'https://picsum.photos/seed/secretcode/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/secret-code-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/coded-note/800/600',
+      'https://picsum.photos/seed/library-books/800/600',
+      'https://picsum.photos/seed/oak-tree-meeting/800/600',
+    ],
     content_text: [
       'Three friends — Zain, Leila, and Omar — created a secret club where they communicated using codes. They wrote messages by shifting each letter three places in the alphabet, so "A" became "D" and "B" became "E".',
       'One day they found a coded note in the library that was not from any of them. It read: "PHHW PH DW WKH ROG RDN WUHH." They decoded it together: "MEET ME AT THE OLD OAK TREE."',
@@ -482,7 +578,12 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'nature',
     min_age: 8,
     max_age: 10,
-    thumbnail_url: 'https://picsum.photos/seed/mountaincloud/400/300',
+    thumbnail_url: 'https://picsum.photos/seed/mountain-cloud-cover/800/600',
+    page_images: [
+      'https://picsum.photos/seed/tall-mountain/800/600',
+      'https://picsum.photos/seed/snowy-peak/800/600',
+      'https://picsum.photos/seed/river-valley-view/800/600',
+    ],
     content_text: [
       'High above the valley stood a proud mountain who had not moved in ten thousand years. Every day a playful cloud drifted past and said, "Come travel with me! I have seen oceans and cities and deserts." The mountain always replied, "I cannot move. I am stuck here forever."',
       'One winter the cloud returned carrying snow and gently placed it on the mountain\'s peak. "You may not be able to travel," said the cloud, "but rivers flow from your snow to the ocean. Through your rivers, you have already touched every shore in the world."',
@@ -634,7 +735,7 @@ const SEED_ITEMS: SeedItem[] = [
     category: 'nature',
     min_age: 2,
     max_age: 4,
-    url: 'https://www.youtube.com/watch?v=bUmUBOcNbQE',
+    url: 'https://www.youtube.com/watch?v=nCPPLhPTAIk',
     thumbnail_url: 'https://picsum.photos/seed/rainrainbow/400/300',
     duration_seconds: 160,
     status: 'published',

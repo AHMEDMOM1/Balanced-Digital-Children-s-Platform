@@ -8,7 +8,7 @@ import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useContentById } from '../../services/api/hooks';
-import { getBiDiStyle } from '../../services/utils/bidi';
+import { getBiDiStyle, formatBiDiText } from '../../services/utils/bidi';
 
 export default function CreativeDetailScreen() {
     const router = useRouter();
@@ -58,9 +58,9 @@ export default function CreativeDetailScreen() {
                 </Animated.View>
 
                 <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.textContainer}>
-                    <Text style={[styles.title, getBiDiStyle(activity.title)]}>{activity.title}</Text>
+                    <Text style={[styles.title, getBiDiStyle(activity.title)]}>{formatBiDiText(activity.title)}</Text>
                     <Text style={[styles.instructions, getBiDiStyle(activity.content_text || '')]}>
-                        {activity.content_text}
+                        {formatBiDiText(activity.content_text || '')}
                     </Text>
                 </Animated.View>
             </ScrollView>

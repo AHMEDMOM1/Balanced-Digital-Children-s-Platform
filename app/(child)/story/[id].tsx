@@ -7,7 +7,7 @@
  * - Floating close and audio buttons
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
@@ -22,16 +22,31 @@ import { useSessionWriter } from '../../../services/api/sessions';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-function splitContentToPages(contentText: string | undefined, title: string): { text: string; emoji: string }[] {
-    const emojis = ['📖', '🌟', '🦋', '🌈', '💫', '🎉', '✨', '🌸', '🦊', '🌙'];
+interface StoryPage {
+    text: string;
+    image: string | null;
+}
+
+const emojis = ['📖', '🌟', '🦋', '🌈', '💫', '🎉', '✨', '🌸', '🦊', '🌙'];
+
+function splitContentToPages(
+    contentText: string | undefined,
+    pageImages: string[] | undefined,
+): StoryPage[] {
+    const pages: StoryPage[] = [];
+
     if (!contentText || contentText.trim().length === 0) {
-        return [{ text: 'This story is coming soon!', emoji: '📖' }];
+        pages.push({ text: 'This story is coming soon!', image: null });
+        return pages;
     }
+
     const paragraphs = contentText.split('\n\n').filter(p => p.trim().length > 0);
-    return paragraphs.map((text, i) => ({
-        text: text.trim(),
-        emoji: emojis[i % emojis.length],
-    }));
+    paragraphs.forEach((text, i) => {
+        const image = pageImages && i < pageImages.length ? pageImages[i] : null;
+        pages.push({ text: text.trim(), image });
+    });
+
+    return pages;
 }
 
 export default function StoryScreen() {
@@ -66,7 +81,7 @@ export default function StoryScreen() {
     }, [childData?.id, id]);
 
     const storyTitle = content?.title || 'Story Time';
-    const pages = splitContentToPages(content?.content_text, storyTitle);
+    const pages = splitContentToPages(content?.content_text, content?.page_images);
     const currentPage = pages[pageIndex];
     const isLastPage = pageIndex === pages.length - 1;
     const isFirstPage = pageIndex === 0;
@@ -115,7 +130,7 @@ export default function StoryScreen() {
 
                         <View style={styles.titlePill}>
                             <Ionicons name="book" size={20} color={Colors.child.secondary} />
-                            <Text style={[styles.titleText, getBiDiStyle(storyTitle)]} numberOfLines={1}>{storyTitle}</Text>
+                            <Text style={[styles.titleText, getBiDiStyle(storyTitle)]} numberOfLines={2}>{formatBiDiText(storyTitle)}</Text>
                         </View>
 
                         <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
@@ -133,7 +148,17 @@ export default function StoryScreen() {
                         >
                             {/* Illustration Area */}
                             <View style={styles.illustrationArea}>
-                                <Text style={styles.illustrationEmoji}>{currentPage.emoji}</Text>
+                                {currentPage.image ? (
+                                    <Image
+                                        source={{ uri: currentPage.image }}
+                                        style={styles.pageImage}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <Text style={styles.illustrationEmoji}>
+                                        {emojis[pageIndex % emojis.length]}
+                                    </Text>
+                                )}
 
                                 {/* Page Badge */}
                                 <View style={styles.pageBadge}>
@@ -271,7 +296,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: Layout.radius.full,
-        maxWidth: SCREEN_WIDTH * 0.5,
+        maxWidth: SCREEN_WIDTH * 0.6,
         // Shadow
         shadowColor: Colors.child.primary,
         shadowOffset: { width: 0, height: 10 },
@@ -319,6 +344,11 @@ const styles = StyleSheet.create({
     },
     illustrationEmoji: {
         fontSize: 100,
+    },
+    pageImage: {
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
     },
     pageBadge: {
         position: 'absolute',

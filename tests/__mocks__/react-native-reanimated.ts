@@ -7,25 +7,35 @@ const Animated: Record<string, string> = {
 
 export default Animated;
 
-export const FadeInDown = {
-  duration: jest.fn(() => FadeInDown as any),
-  damping: jest.fn(() => FadeInDown as any),
-  delay: jest.fn(() => FadeInDown as any),
+export const FadeInDown: any = {
+  duration: jest.fn(() => FadeInDown),
+  damping: jest.fn(() => FadeInDown),
+  delay: jest.fn(() => FadeInDown),
 };
 
-export const BounceIn = {
-  duration: jest.fn(() => BounceIn as any),
-  delay: jest.fn(() => BounceIn as any),
+export const BounceIn: any = {
+  duration: jest.fn(() => BounceIn),
+  delay: jest.fn(() => BounceIn),
 };
 
-export const FadeIn = {
-  duration: jest.fn(() => FadeIn as any),
-  delay: jest.fn(() => FadeIn as any),
+export const FadeIn: any = {
+  duration: jest.fn(() => FadeIn),
+  delay: jest.fn(() => FadeIn),
 };
 
-export const ZoomIn = {
-  duration: jest.fn(() => ZoomIn as any),
-  delay: jest.fn(() => ZoomIn as any),
+export const FadeInRight: any = {
+  duration: jest.fn(() => FadeInRight),
+  delay: jest.fn(() => FadeInRight),
+};
+
+export const FadeOutLeft: any = {
+  duration: jest.fn(() => FadeOutLeft),
+  delay: jest.fn(() => FadeOutLeft),
+};
+
+export const ZoomIn: any = {
+  duration: jest.fn(() => ZoomIn),
+  delay: jest.fn(() => ZoomIn),
 };
 
 export const useAnimatedStyle = jest.fn(() => ({}));

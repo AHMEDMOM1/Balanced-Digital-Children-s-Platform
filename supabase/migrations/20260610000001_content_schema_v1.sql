@@ -18,7 +18,9 @@ ALTER TABLE content_items
   ADD COLUMN IF NOT EXISTS content_text      text,
   ADD COLUMN IF NOT EXISTS assets_url        text,
   ADD COLUMN IF NOT EXISTS game_type         text,
-  ADD COLUMN IF NOT EXISTS config_json       jsonb;
+  ADD COLUMN IF NOT EXISTS config_json       jsonb,
+  ADD COLUMN IF NOT EXISTS sort_order        integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS page_images      text[] DEFAULT '{}';
 
 -- -----------------------------------------------------------
 -- STEP 2: Create categories lookup table

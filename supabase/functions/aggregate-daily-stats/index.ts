@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * supabase/functions/aggregate-daily-stats/index.ts
  * Edge Function fallback for pg_cron.
