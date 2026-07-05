@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { ContentItem, ContentType, CategoryPreference, AgeGroup, ApiResponse } from './types';
+import type { ContentItem, ContentType, CategoryPreference, ApiResponse } from './types';
 import { getClient } from './client';
-import { signInWithOtp, verifyOtp, logout as authLogout, generateFamilyCode, redeemFamilyCode, verifyParentPin, updateParentPin } from '../auth';
+import { signInWithOtp, verifyOtp, logout as authLogout, verifyParentPin, updateParentPin } from '../auth';
 import useAuthStore from '../../store/useAuthStore';
 import useDataStore from '../../store/useDataStore';
 
@@ -179,41 +179,6 @@ export function useAuth() {
     logout: logoutUser,
     clearError: store.clearError,
   };
-}
-
-export function useFamilyCode() {
-  const [code, setCode] = useState<string | null>(null);
-  const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const generate = async () => {
-    setIsGenerating(true);
-    setError(null);
-    try {
-      const data = await generateFamilyCode();
-      setCode(data.code);
-      setExpiresAt(data.expiresAt);
-    } catch (err: any) {
-      setError(err.message || 'Generation failed');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const redeem = async (inputCode: string, name: string, age: AgeGroup) => {
-    setError(null);
-    try {
-      useAuthStore.setState({ isLoading: true });
-      const authState = await redeemFamilyCode(inputCode, name, age);
-      useAuthStore.setState({ ...authState, isLoading: false });
-    } catch (err: any) {
-      useAuthStore.setState({ isLoading: false, error: err.message });
-      throw err;
-    }
-  };
-
-  return { code, expiresAt, isGenerating, error, generate, redeem };
 }
 
 export function useParentPin() {

@@ -1,3 +1,6 @@
+// @ts-nocheck
+import { by, element, expect } from 'detox';
+
 /**
  * E2E Test: Child Session End Flow
  *

@@ -18,7 +18,7 @@
 
 **Purpose**: Confirm the existing seed file is correct before adding scripts and tests around it
 
-- [ ] T001 Audit `server/seeds/002_reports_seed.sql` — confirm: `ON CONFLICT (child_id, stat_date) DO NOTHING` is present; all 4 category columns (`stories_seconds`, `games_seconds`, `videos_seconds`, `creative_seconds`) are populated with `random()`-bounded non-zero expressions; `is_finalized` is set to `(v_day < CURRENT_DATE)`
+- [x] T001 Audit `server/seeds/002_reports_seed.sql` — confirm: `ON CONFLICT (child_id, stat_date) DO NOTHING` is present; all 4 category columns (`stories_seconds`, `games_seconds`, `videos_seconds`, `creative_seconds`) are populated with `random()`-bounded non-zero expressions; `is_finalized` is set to `(v_day < CURRENT_DATE)`
 
 ---
 
@@ -28,7 +28,7 @@
 
 **⚠️ CRITICAL**: T002 must complete before T003 — the integration test will reference the `seed:reports` script name in its documentation
 
-- [ ] T002 Add `"seed:reports": "supabase db execute -f server/seeds/002_reports_seed.sql"` to the `scripts` section of `package.json`
+- [x] T002 Add `"seed:reports": "supabase db execute -f server/seeds/002_reports_seed.sql"` to the `scripts` section of `package.json`
 
 **Checkpoint**: `npm run seed:reports` is now a valid command (requires Supabase CLI + linked project)
 
@@ -42,7 +42,7 @@
 
 ### Tests for User Story 1 (TDD — write first, must FAIL before T005)
 
-- [ ] T003 [US1] Create `tests/integration/seedVerify.test.ts` with mocked `@supabase/supabase-js` following the pattern in `tests/integration/clockBypass.test.ts`. Include 6 test cases:
+- [x] T003 [US1] Create `tests/integration/seedVerify.test.ts` with mocked `@supabase/supabase-js` following the pattern in `tests/integration/clockBypass.test.ts`. Include 6 test cases:
   1. Mock returns 30 rows per child → expect verify to pass and exit 0
   2. Mock returns 0 rows → expect verify to report "0 rows found" and exit 1
   3. Mock returns rows where `stories_seconds = 0` for one row → expect verify to report category failure and exit 1
@@ -50,15 +50,15 @@
   5. Mock returns today's row with `is_finalized = false` → expect verify to pass the today check
   6. Mock returns rows where `MIN(total_seconds) = 800` (below 1200 threshold) → expect verify to report "total_seconds below minimum" and exit 1 (covers FR-003)
 
-- [ ] T004 [US1] Run `npx jest tests/integration/seedVerify.test.ts` and confirm all 6 tests FAIL (red phase — `scripts/seed-verify.ts` does not exist yet)
+- [x] T004 [US1] Run `npx jest tests/integration/seedVerify.test.ts` and confirm all 6 tests FAIL (red phase — `scripts/seed-verify.ts` does not exist yet)
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Create `scripts/seed-verify.ts` — connect using `services/api/client.ts` singleton; run 4 queries against `daily_stats`: (1) `SELECT child_id, COUNT(*) GROUP BY child_id` for row counts, (2) `SELECT MIN(stories_seconds), MIN(games_seconds), MIN(videos_seconds), MIN(creative_seconds)` for category floor checks, (3) `SELECT MIN(total_seconds) FROM daily_stats` — fail if result < 1200 (FR-003), (4) `SELECT is_finalized, COUNT(*) GROUP BY is_finalized` for finalization flags. Output human-readable result lines and `Result: PASS` or `Result: FAIL` to stdout. Exit with code 1 on any failure.
+- [x] T005 [US1] Create `scripts/seed-verify.ts` — connect using `services/api/client.ts` singleton; run 4 queries against `daily_stats`: (1) `SELECT child_id, COUNT(*) GROUP BY child_id` for row counts, (2) `SELECT MIN(stories_seconds), MIN(games_seconds), MIN(videos_seconds), MIN(creative_seconds)` for category floor checks, (3) `SELECT MIN(total_seconds) FROM daily_stats` — fail if result < 1200 (FR-003), (4) `SELECT is_finalized, COUNT(*) GROUP BY is_finalized` for finalization flags. Output human-readable result lines and `Result: PASS` or `Result: FAIL` to stdout. Exit with code 1 on any failure.
 
-- [ ] T006 [US1] Add `"seed:verify": "npx ts-node scripts/seed-verify.ts"` to the `scripts` section of `package.json`
+- [x] T006 [US1] Add `"seed:verify": "npx ts-node scripts/seed-verify.ts"` to the `scripts` section of `package.json`
 
-- [ ] T007 [US1] Run `npx jest tests/integration/seedVerify.test.ts` and confirm all 6 tests PASS (green phase)
+- [x] T007 [US1] Run `npx jest tests/integration/seedVerify.test.ts` and confirm all 6 tests PASS (green phase)
 
 **Checkpoint**: US1 complete — `npm run seed:reports` applies seed; `npm run seed:verify` reports PASS; `npx jest tests/integration/seedVerify.test.ts` all green
 
@@ -70,9 +70,9 @@
 
 **Independent Test**: Add test case to existing `tests/integration/seedVerify.test.ts`; mock returns rows for 2 children with different totals → script reports "Children seeded: 2" and does not fail
 
-- [ ] T008 [P] [US2] Add test case 6 to `tests/integration/seedVerify.test.ts`: mock returns rows for 2 children (child A: total_seconds=7200, child B: total_seconds=900) → verify script outputs "Children seeded: 2" and exits 0
+- [x] T008 [P] [US2] Add test case 6 to `tests/integration/seedVerify.test.ts`: mock returns rows for 2 children (child A: total_seconds=7200, child B: total_seconds=900) → verify script outputs "Children seeded: 2" and exits 0
 
-- [ ] T009 [US2] Extend `scripts/seed-verify.ts` to include a "Children seeded: N" output line in the summary (reuse the row-count query result from T005; just add a child count line to stdout)
+- [x] T009 [US2] Extend `scripts/seed-verify.ts` to include a "Children seeded: N" output line in the summary (reuse the row-count query result from T005; just add a child count line to stdout)
 
 **Checkpoint**: US2 complete — verification script reports child count; multi-child scenario confirmed by test. Note: SC-005 visual rendering (comparison bars differ in height) is verified manually during T014's real-env step — open Reports → Comparison tab and confirm two children's bars are at visually distinct heights.
 
@@ -84,9 +84,9 @@
 
 **Independent Test**: Add test case to existing `tests/integration/seedVerify.test.ts`; mock returns rows where all 4 MIN values > 0 → script outputs "All 4 categories non-zero: ✓"
 
-- [ ] T010 [P] [US3] Add test case 7 to `tests/integration/seedVerify.test.ts`: mock returns rows with all MIN category values > 0 → verify script outputs "All 4 categories non-zero: ✓" and exits 0; also test the failure case: mock returns MIN(stories_seconds) = 0 → script outputs "All 4 categories non-zero: ✗" and exits 1
+- [x] T010 [P] [US3] Add test case 7 to `tests/integration/seedVerify.test.ts`: mock returns rows with all MIN category values > 0 → verify script outputs "All 4 categories non-zero: ✓" and exits 0; also test the failure case: mock returns MIN(stories_seconds) = 0 → script outputs "All 4 categories non-zero: ✗" and exits 1
 
-- [ ] T011 [US3] Extend `scripts/seed-verify.ts` to include an explicit "All 4 categories non-zero: ✓/✗" output line (reuse the MIN query from T005; just add a formatted line to stdout)
+- [x] T011 [US3] Extend `scripts/seed-verify.ts` to include an explicit "All 4 categories non-zero: ✓/✗" output line (reuse the MIN query from T005; just add a formatted line to stdout)
 
 **Checkpoint**: All user stories complete — verification covers row counts, child count, category floors, and finalization flags
 
@@ -96,11 +96,11 @@
 
 **Purpose**: Confirm the entire workflow works against a real Supabase environment and all tests pass together
 
-- [ ] T012 Run `npx jest tests/integration/seedVerify.test.ts` with all 8 test cases and confirm 100% pass rate
+- [x] T012 Run `npx jest tests/integration/seedVerify.test.ts` with all 8 test cases and confirm 100% pass rate
 
-- [ ] T013 [P] Run `npx tsc --noEmit` and confirm `scripts/seed-verify.ts` has zero TypeScript errors
+- [x] T013 [P] Run `npx tsc --noEmit` and confirm `scripts/seed-verify.ts` has zero TypeScript errors
 
-- [ ] T014 Apply the seed and verify against a real dev/staging Supabase project: record wall-clock start time, run `npm run seed:reports`, record end time — confirm elapsed < 60s (SC-002 / FR-009); then run `npm run seed:verify` and confirm stdout ends with "Result: PASS"
+- [x] T014 Apply the seed and verify against a real dev/staging Supabase project: record wall-clock start time, run `npm run seed:reports`, record end time — confirm elapsed < 60s (SC-002 / FR-009); then run `npm run seed:verify` and confirm stdout ends with "Result: PASS"
 
 ---
 

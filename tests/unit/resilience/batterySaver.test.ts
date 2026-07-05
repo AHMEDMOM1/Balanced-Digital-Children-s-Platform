@@ -64,10 +64,10 @@ describe('BatterySaver detection', () => {
     const batteryCb = jest.fn();
     m3.onBatterySaverChange(batteryCb);
 
-    listenerCallback?.({ lowPowerMode: true });
+    listenerCallback!({ lowPowerMode: true });
     expect(batteryCb).toHaveBeenCalledWith(true);
 
-    listenerCallback?.({ lowPowerMode: false });
+    listenerCallback!({ lowPowerMode: false });
     expect(batteryCb).toHaveBeenCalledWith(false);
 
     m3.stop();
@@ -87,7 +87,7 @@ describe('BatterySaver detection', () => {
     const unsub = m4.onBatterySaverChange(batteryCb);
     unsub();
 
-    listenerCallback?.({ lowPowerMode: true });
+    listenerCallback!({ lowPowerMode: true });
     expect(batteryCb).not.toHaveBeenCalled();
 
     m4.stop();

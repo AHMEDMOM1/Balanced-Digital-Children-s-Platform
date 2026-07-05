@@ -15,8 +15,9 @@ import Header from '../../components/ui/Header';
 import PinLock from '../../components/ui/PinLock';
 import useSettingsStore from '../../store/useSettingsStore';
 import useSessionStore from '../../store/useSessionStore';
+import useAuthStore from '../../store/useAuthStore';
 import { timeSync } from '../../services/resilience/timeSync';
-import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../services/utils/bidi';
 
 export default function ChildHomeScreen() {
     const router = useRouter();
@@ -24,6 +25,8 @@ export default function ChildHomeScreen() {
     const { storiesEnabled, gamesEnabled, creativeEnabled, videosEnabled } = useSettingsStore();
     const { dailyTimeLimitMinutes, sessionsPerDay } = useSettingsStore();
     const { elapsedSeconds } = useSessionStore();
+    const childName = useAuthStore((s) => s.childData?.name);
+    const greeting = childName ? `Hi ${childName}!` : 'Hi there!';
 
     // Calculate time remaining for current session
     const maxSessionSeconds = Math.floor((dailyTimeLimitMinutes * 60) / sessionsPerDay);
@@ -91,14 +94,14 @@ export default function ChildHomeScreen() {
                 )}
 
                 <View style={styles.welcomeContainer}>
-                    <Text style={[styles.welcomeTitle, getBiDiStyle("Hi Leo!"), !isArabic("Hi Leo!") && { textAlign: 'center' }]}>Hi Leo!</Text>
-                    <Text style={[styles.welcomeSubtitle, getBiDiStyle("Ready for an adventure today?"), !isArabic("Ready for an adventure today?") && { textAlign: 'center' }]}>Ready for an adventure today?</Text>
+                    <Text style={[styles.welcomeTitle, getBiDiStyle(greeting), !isArabic(greeting) && { textAlign: 'center' }]}>{formatBiDiText(greeting)}</Text>
+                    <Text style={[styles.welcomeSubtitle, getBiDiStyle("Ready for an adventure today?"), !isArabic("Ready for an adventure today?") && { textAlign: 'center' }]}>{formatBiDiText("Ready for an adventure today?")}</Text>
                 </View>
 
                 {/* ── Time Pill ── */}
                 <View style={styles.timerPill}>
                     <Ionicons name="time-outline" size={20} color={Colors.child.textPrimary} />
-                    <Text style={[styles.timerText, getBiDiStyle(`${formatTime(remainingSeconds)} remaining`)]}>{formatTime(remainingSeconds)} remaining</Text>
+                    <Text style={[styles.timerText, getBiDiStyle(`${formatTime(remainingSeconds)} remaining`)]}>{formatBiDiText(`${formatTime(remainingSeconds)} remaining`)}</Text>
                 </View>
 
                 {/* ── Grid ── */}
@@ -116,7 +119,7 @@ export default function ChildHomeScreen() {
                                     <Ionicons name={activity.icon} size={36} color={activity.iconColor} />
                                 </View>
                                 <Text style={[styles.cardTitle, { color: activity.iconColor }, getBiDiStyle(activity.title)]}>
-                                    {activity.title}
+                                    {formatBiDiText(activity.title)}
                                 </Text>
                             </TouchableOpacity>
                         );

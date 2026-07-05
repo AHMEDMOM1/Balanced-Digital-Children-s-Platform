@@ -1,5 +1,6 @@
 import { getDB } from './db';
 import { getClient } from '../api/client';
+import { generateCommandId } from '../utils/uuid';
 
 interface RecoveryAttempt {
   email: string;
@@ -73,7 +74,7 @@ export class PinRecoveryManager {
 
   generateToken(email: string): string {
     this.invalidateExistingTokens(email);
-    const token = crypto.randomUUID();
+    const token = generateCommandId();
     const expiresAt = Date.now() + EMAIL_LINK_TTL_MS;
     this.recoveryTokens.set(email, { token, expiresAt });
     this.pendingEmail = email;

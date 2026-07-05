@@ -7,7 +7,7 @@
  * - Floating close and audio buttons
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
@@ -18,27 +18,35 @@ import Layout from '../../../constants/Layout';
 import { useStory, logStoryActivity } from '../../../services/api/hooks';
 import useAuthStore from '../../../store/useAuthStore';
 import { getBiDiStyle, isArabic, formatBiDiText } from '../../../services/utils/bidi';
+import { useSessionWriter } from '../../../services/api/sessions';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const storyTemplates: Record<string, { text: string; emoji: string }[]> = {
-    'default': [
-        { text: 'Once upon a time, in a land not so far away, there was a wonderful adventure waiting to begin.', emoji: '🌟' },
-        { text: 'Our hero looked around with wide eyes, ready to explore every corner of this magical world.', emoji: '🗺️' },
-        { text: 'A friendly creature appeared and smiled. "Follow me," it said, "I will show you something amazing!"', emoji: '🦊' },
-        { text: 'Together they discovered a secret place full of wonder and joy, where every dream could come true.', emoji: '✨' },
-        { text: 'And so, with a happy heart, our hero knew that the greatest adventures are the ones we share with friends.', emoji: '💫' },
-    ],
-};
+interface StoryPage {
+    text: string;
+    image: string | null;
+}
 
-function getStoryPages(title: string): { text: string; emoji: string }[] {
-    const templates = storyTemplates['default'];
-    return templates.map((page, i) => ({
-        ...page,
-        emoji: [
-            '📖', '🌟', '🦋', '🌈', '💫', '🎉',
-        ][i % 6],
-    }));
+const emojis = ['📖', '🌟', '🦋', '🌈', '💫', '🎉', '✨', '🌸', '🦊', '🌙'];
+
+function splitContentToPages(
+    contentText: string | undefined,
+    pageImages: string[] | undefined,
+): StoryPage[] {
+    const pages: StoryPage[] = [];
+
+    if (!contentText || contentText.trim().length === 0) {
+        pages.push({ text: 'This story is coming soon!', image: null });
+        return pages;
+    }
+
+    const paragraphs = contentText.split('\n\n').filter(p => p.trim().length > 0);
+    paragraphs.forEach((text, i) => {
+        const image = pageImages && i < pageImages.length ? pageImages[i] : null;
+        pages.push({ text: text.trim(), image });
+    });
+
+    return pages;
 }
 
 export default function StoryScreen() {
@@ -48,22 +56,32 @@ export default function StoryScreen() {
     const { data: content, isLoading, error } = useStory(id as string);
     const childData = useAuthStore((s) => s.childData);
     const mountTimeRef = useRef(Date.now());
+    const { openSession, closeSession } = useSessionWriter(
+        childData?.id ?? '',
+        childData?.familyId ?? '',
+        'story',
+        id as string
+    );
 
     useEffect(() => {
         mountTimeRef.current = Date.now();
+        if (childData?.id) openSession();
         return () => {
+            const elapsed = Math.round((Date.now() - mountTimeRef.current) / 1000);
+            if (childData?.id) closeSession(elapsed);
             if (childData?.id && id) {
                 logStoryActivity({
                     childId: childData.id,
                     storyId: id as string,
-                    durationSeconds: Math.floor((Date.now() - mountTimeRef.current) / 1000),
+                    durationSeconds: Math.floor(elapsed),
                 }).catch(() => {});
             }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [childData?.id, id]);
 
     const storyTitle = content?.title || 'Story Time';
-    const pages = getStoryPages(storyTitle);
+    const pages = splitContentToPages(content?.content_text, content?.page_images);
     const currentPage = pages[pageIndex];
     const isLastPage = pageIndex === pages.length - 1;
     const isFirstPage = pageIndex === 0;
@@ -112,7 +130,7 @@ export default function StoryScreen() {
 
                         <View style={styles.titlePill}>
                             <Ionicons name="book" size={20} color={Colors.child.secondary} />
-                            <Text style={[styles.titleText, getBiDiStyle(storyTitle)]} numberOfLines={1}>{storyTitle}</Text>
+                            <Text style={[styles.titleText, getBiDiStyle(storyTitle)]} numberOfLines={2}>{formatBiDiText(storyTitle)}</Text>
                         </View>
 
                         <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
@@ -130,7 +148,17 @@ export default function StoryScreen() {
                         >
                             {/* Illustration Area */}
                             <View style={styles.illustrationArea}>
-                                <Text style={styles.illustrationEmoji}>{currentPage.emoji}</Text>
+                                {currentPage.image ? (
+                                    <Image
+                                        source={{ uri: currentPage.image }}
+                                        style={styles.pageImage}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <Text style={styles.illustrationEmoji}>
+                                        {emojis[pageIndex % emojis.length]}
+                                    </Text>
+                                )}
 
                                 {/* Page Badge */}
                                 <View style={styles.pageBadge}>
@@ -268,7 +296,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: Layout.radius.full,
-        maxWidth: SCREEN_WIDTH * 0.5,
+        maxWidth: SCREEN_WIDTH * 0.6,
         // Shadow
         shadowColor: Colors.child.primary,
         shadowOffset: { width: 0, height: 10 },
@@ -316,6 +344,11 @@ const styles = StyleSheet.create({
     },
     illustrationEmoji: {
         fontSize: 100,
+    },
+    pageImage: {
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
     },
     pageBadge: {
         position: 'absolute',

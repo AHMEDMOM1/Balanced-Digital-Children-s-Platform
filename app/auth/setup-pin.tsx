@@ -3,7 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, BackHandler } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Crypto from 'expo-crypto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import useSettingsStore from '../../store/useSettingsStore';
+import { getClient } from '../../services/api/client';
 
 const S = {
     surface: '#FDF7FF',
@@ -17,6 +20,8 @@ const S = {
     outline: '#7A7582',
 };
 
+const PIN_LENGTH = 6;
+
 export default function SetupPinScreen() {
     const router = useRouter();
     const setPinCode = useSettingsStore((s) => s.setPinCode);
@@ -24,21 +29,20 @@ export default function SetupPinScreen() {
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
     const [error, setError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     // Prevent back navigation to force PIN setup
     React.useEffect(() => {
         const onBackPress = () => true;
-        BackHandler.addEventListener('hardwareBackPress', onBackPress);
-        return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription.remove();
     }, []);
-
-    const activeInput = step === 'new' ? newPin : confirmPin;
 
     const handlePress = (digit: string) => {
         setError('');
-        if (step === 'new' && newPin.length < 4) {
+        if (step === 'new' && newPin.length < PIN_LENGTH) {
             setNewPin(prev => prev + digit);
-        } else if (step === 'confirm' && confirmPin.length < 4) {
+        } else if (step === 'confirm' && confirmPin.length < PIN_LENGTH) {
             setConfirmPin(prev => prev + digit);
         }
     };
@@ -48,23 +52,45 @@ export default function SetupPinScreen() {
         else setConfirmPin(prev => prev.slice(0, -1));
     };
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (step === 'new') {
-            if (newPin.length === 4) setStep('confirm');
-        } else if (step === 'confirm') {
-            if (confirmPin === newPin) {
-                setPinCode(newPin); // This also sets isPinSetup = true
-                router.replace('/(parent)');
-            } else {
+            if (newPin.length === PIN_LENGTH) setStep('confirm');
+            return;
+        }
+
+        if (step === 'confirm') {
+            if (confirmPin !== newPin) {
                 setError('PINs do not match');
                 setConfirmPin('');
+                return;
+            }
+
+            setIsSaving(true);
+            try {
+                const hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, newPin);
+                await AsyncStorage.setItem('@parent_pin_hash', hash);
+                // Clear the legacy plaintext pin — migration complete
+                setPinCode('');
+                // Fire-and-forget cloud sync — needs the real parent email, not ''
+                const { data: { user } } = await getClient().auth.getUser();
+                if (user?.email) {
+                    getClient()
+                        .rpc('update_parent_pin_hash', { p_email: user.email, p_new_hash: hash })
+                        .then(({ error: syncErr }) => {
+                            if (syncErr) console.warn('[setupPin] cloud sync warn:', syncErr.message);
+                        });
+                }
+                console.debug('[setupPin] parent PIN hash stored');
+                router.replace('/(parent)');
+            } finally {
+                setIsSaving(false);
             }
         }
     };
 
     const renderDots = (value: string, active: boolean) => (
         <View style={styles.dotsRow}>
-            {[0, 1, 2, 3].map(i => (
+            {[0, 1, 2, 3, 4, 5].map(i => (
                 <View
                     key={i}
                     style={[
@@ -98,7 +124,7 @@ export default function SetupPinScreen() {
                     {/* Header */}
                     <Text style={styles.cardTitle}>Create Parent PIN</Text>
                     <Text style={styles.cardDesc}>
-                        This PIN will be used to access parent settings and lock the child interface.
+                        This 6-digit PIN will be used to access parent settings.
                     </Text>
 
                     {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -117,18 +143,20 @@ export default function SetupPinScreen() {
                     {/* Numeric Keypad */}
                     <View style={styles.keypad}>
                         {['1','2','3','4','5','6','7','8','9'].map(d => (
-                            <TouchableOpacity key={d} style={styles.key} onPress={() => handlePress(d)}>
+                            <TouchableOpacity key={d} style={styles.key} onPress={() => handlePress(d)} disabled={isSaving}>
                                 <Text style={styles.keyText}>{d}</Text>
                             </TouchableOpacity>
                         ))}
-                        <TouchableOpacity style={styles.keyAction} onPress={handleBackspace}>
+                        <TouchableOpacity style={styles.keyAction} onPress={handleBackspace} disabled={isSaving}>
                             <Ionicons name="backspace-outline" size={24} color={S.onSurfaceVariant} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.key} onPress={() => handlePress('0')}>
+                        <TouchableOpacity style={styles.key} onPress={() => handlePress('0')} disabled={isSaving}>
                             <Text style={styles.keyText}>0</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.keyAction} onPress={handleNext}>
-                            <Text style={[styles.keyText, { color: S.primary, fontWeight: '700' }]}>Next</Text>
+                        <TouchableOpacity style={styles.keyAction} onPress={handleNext} disabled={isSaving}>
+                            <Text style={[styles.keyText, { color: S.primary, fontWeight: '700' }]}>
+                                {isSaving ? '…' : 'Next'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -157,9 +185,9 @@ const styles = StyleSheet.create({
     pinSection: { marginBottom: 20, alignItems: 'center' },
     pinLabel: { fontSize: 13, color: S.onSurfaceVariant, marginBottom: 8 },
     dimmed: { opacity: 0.4 },
-    dotsRow: { flexDirection: 'row', gap: 16 },
+    dotsRow: { flexDirection: 'row', gap: 10 },
     dot: {
-        width: 48, height: 56, borderRadius: 8,
+        width: 40, height: 52, borderRadius: 8,
         borderWidth: 1, borderColor: S.outlineVariant,
         backgroundColor: S.surfaceLow,
         alignItems: 'center', justifyContent: 'center',

@@ -55,12 +55,7 @@ export default function RegisterScreen() {
         setIsLoading(true);
         try {
             await auth.verifyOtp(email.trim(), code.trim());
-            const { isPinSetup } = useSettingsStore.getState();
-            if (!isPinSetup) {
-                router.replace('/auth/setup-pin');
-            } else {
-                router.replace('/(parent)');
-            }
+            router.replace('/auth/setup-pin');
         } catch (err: any) {
             setLocalError(err.message || 'Registration verification failed');
         } finally {

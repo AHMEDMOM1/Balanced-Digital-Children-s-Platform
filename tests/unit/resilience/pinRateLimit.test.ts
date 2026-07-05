@@ -4,19 +4,24 @@
  */
 
 jest.mock('../../../services/resilience/db', () => {
-  const rows: any[] = [];
+  const logs: Array<[string, number, string, number]> = [];
   const db = {
     runAsync: jest.fn(async (_sql: string, ...args: any[]) => {
-      rows.push(args);
+      logs.push(args as [string, number, string, number]);
     }),
-    getFirstAsync: jest.fn(async (sql: string) => {
+    getFirstAsync: jest.fn(async (sql: string, ...queryArgs: any[]) => {
       if (sql.includes('pin_recovery_lockout')) {
-        return rows.filter((r) => r[0] === undefined).pop() ?? null;
+        const likePattern: string = queryArgs[0] ?? '';
+        const emailMatch = likePattern.match(/"email":"([^"]+)"/);
+        const email = emailMatch ? emailMatch[1] : '';
+        const matches = logs
+          .filter(r => r[0] === 'pin_recovery_lockout' && (!email || (r[2] ?? '').includes(email)));
+        return matches.length > 0 ? { context_json: matches[matches.length - 1][2] } : null;
       }
       return null;
     }),
   };
-  return { getDB: jest.fn(async () => db), _rows: rows };
+  return { getDB: jest.fn(async () => db) };
 });
 
 jest.mock('../../../services/api/client', () => ({

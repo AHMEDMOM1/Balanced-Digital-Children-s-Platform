@@ -1,12 +1,22 @@
 import { getClient } from '../api/client';
-import { RealtimeCommand } from './types';
+import { RealtimeCommand, SettingsSyncPayload } from './types';
 import useSettingsStore from '../../store/useSettingsStore';
 
 export function processCommand(
-  command: RealtimeCommand, 
-  realtimeStore: any, 
-  sessionStore: any
+  command: RealtimeCommand,
+  realtimeStore: any,
+  sessionStore: any,
+  selfChildId: string | null = null,
 ): boolean {
+  // 0. Targeting: null child_id = broadcast to every child in the family
+  // (e.g. parent's "Pause all" button). A specific child_id means this
+  // command is meant for exactly one child — ignore it everywhere else,
+  // since every child in a family currently shares the same realtime
+  // channel and would otherwise all apply it.
+  if (command.child_id !== null && command.child_id !== selfChildId) {
+    return false;
+  }
+
   // 1. Check if command is already applied
   if (realtimeStore.getState().isCommandApplied(command.command_id)) {
     return false;
@@ -23,11 +33,12 @@ export function processCommand(
     case 'time_update':
       sessionStore.getState().updateRemainingMinutes(command.payload.remaining_minutes);
       break;
-    case 'category_block':
+    case 'category_block': {
       const { category, is_allowed } = command.payload;
-      const settingsStore = useSettingsStore.getState();
-      
-      // Map category name to store action
+
+      // Map category name to store action. The parent already persisted
+      // this to category_preferences when toggling it — the child only
+      // needs to update its own local effective-settings cache.
       const catLower = category.toLowerCase();
       if (catLower.includes('stor')) {
         useSettingsStore.setState({ storiesEnabled: is_allowed });
@@ -38,39 +49,36 @@ export function processCommand(
       } else if (catLower.includes('vid')) {
         useSettingsStore.setState({ videosEnabled: is_allowed });
       }
-
-      // Upsert to database (category_preferences)
-      getClient().from('category_preferences').upsert({
-        child_id: command.child_id,
-        category: category,
-        is_allowed: is_allowed
-      }, { onConflict: 'child_id, category' }).then(); // fire and forget
-      
       break;
+    }
     case 'force_end':
       sessionStore.getState().endSession();
       break;
+    case 'settings_sync': {
+      const p = command.payload as SettingsSyncPayload;
+      if (p.daily_limit_minutes !== undefined)
+        useSettingsStore.setState({ dailyTimeLimitMinutes: p.daily_limit_minutes });
+      if (p.stories_enabled !== undefined)
+        useSettingsStore.setState({ storiesEnabled: p.stories_enabled });
+      if (p.games_enabled !== undefined)
+        useSettingsStore.setState({ gamesEnabled: p.games_enabled });
+      if (p.creative_enabled !== undefined)
+        useSettingsStore.setState({ creativeEnabled: p.creative_enabled });
+      if (p.videos_enabled !== undefined)
+        useSettingsStore.setState({ videosEnabled: p.videos_enabled });
+      console.debug('[commandProcessor] settings_sync applied', p);
+      break;
+    }
   }
 
   // 3. Record as applied
   realtimeStore.getState().addAppliedCommandId(command.command_id);
 
-  // 4. Acknowledge in DB
+  // 4. Acknowledge in DB — headless child, no auth.uid(), must go through
+  // the anon-callable RPC (a direct .update() always failed RLS silently).
   getClient()
-    .from('realtime_commands')
-    .update({ acknowledged_at: new Date().toISOString() })
-    .eq('id', command.command_id)
+    .rpc('child_ack_command', { p_command_id: command.command_id })
     .then(); // fire and forget
-
-  // Log to activity_logs (FR-005)
-  getClient().from('activity_logs').insert({
-    family_id: command.payload?.family_id ?? '',
-    actor_id: command.sender_id,
-    target_child_id: command.child_id,
-    event_type: 'command_applied',
-    command_id: command.command_id,
-    payload: { command_type: command.command_type, ...command.payload },
-  }).then(); // fire and forget
 
   return true;
 }

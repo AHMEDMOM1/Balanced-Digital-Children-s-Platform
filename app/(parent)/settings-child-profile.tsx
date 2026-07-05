@@ -1,13 +1,11 @@
 /**
  * Child Profile Screen — Stitch Design
  * - Child avatar with name badge
- * - Age & birthday info
- * - Screen time usage stats (daily/weekly)
- * - Content permissions toggles (live DB mutations via Supabase)
- * - Daily time limit slider
+ * - Coarse content kill-switches + daily time limit (per-child, parent_settings)
+ * - Fine-grained category preferences (per-child, category_preferences)
  * - Remove child danger zone
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, ActivityIndicator,
 } from 'react-native';
@@ -15,7 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCategoryPreferences } from '../../services/api/hooks';
+import { getChildSettings, upsertChildSettings, ChildSettings } from '../../services/api/childSettings';
 import useAuthStore from '../../store/useAuthStore';
+import { useRealtimeStore } from '../../store/useRealtimeStore';
+import { broadcastCommand } from '../../services/realtime/familyChannel';
+import { getClient } from '../../services/api/client';
+import { generateCommandId } from '../../services/utils/uuid';
 
 const S = {
     surface: '#FDF7FF',
@@ -35,39 +38,88 @@ const S = {
     error: '#BA1A1A',
     errorContainer: '#FFDAD6',
     onErrorContainer: '#93000A',
-    success: '#2E7D32',
-    successContainer: '#C8E6C9',
 };
+
+const KNOWN_CATEGORIES = ['Adventure', 'Educational', 'Fantasy', 'Science', 'Fun', 'Creative'];
 
 export default function SettingsChildProfileScreen() {
     const router = useRouter();
     const { childId } = useLocalSearchParams<{ childId: string }>();
     const children = useAuthStore((s) => s.children);
+    const parentData = useAuthStore((s) => s.parentData);
     const child = children.find((c) => c.id === childId);
+    const { channel } = useRealtimeStore();
 
-    const { preferences, isLoading, toggleCategory } = useCategoryPreferences();
+    const { preferences, isLoading: catLoading, toggleCategory } = useCategoryPreferences();
 
-    // Derive toggle states from preferences
-    const storyCategories = preferences.filter((p) => p.is_allowed && ['Adventure', 'Fantasy', 'Education', 'Mystery', 'Science', 'Slice of Life'].includes(p.category));
-    const gameCategories = preferences.filter((p) => p.is_allowed && ['Puzzles', 'Education', 'Creative', 'Music'].includes(p.category));
-    const videoCategories = preferences.filter((p) => p.is_allowed && ['Science', 'Music', 'Health', 'Education', 'Creative'].includes(p.category));
-    const creativeCategories = preferences.filter((p) => p.is_allowed && ['Art', 'Building', 'Music', 'Writing'].includes(p.category));
+    const [settings, setSettings] = useState<ChildSettings | null>(null);
+    const [settingsLoading, setSettingsLoading] = useState(true);
 
-    const storiesEnabled = storyCategories.length > 0;
-    const gamesEnabled = gameCategories.length > 0;
-    const videosEnabled = videoCategories.length > 0;
-    const creativeEnabled = creativeCategories.length > 0;
+    useEffect(() => {
+        if (!childId) return;
+        getChildSettings(childId).then(({ data }) => {
+            setSettings(data);
+            setSettingsLoading(false);
+        });
+    }, [childId]);
 
-    // Time limit (minutes)
-    const [timeLimit, setTimeLimit] = useState(45);
+    const broadcastSettingsSync = useCallback((payload: Record<string, unknown>) => {
+        if (!channel || !parentData || !childId) return;
+        const commandId = generateCommandId();
+        broadcastCommand(channel, {
+            command_id: commandId,
+            command_type: 'settings_sync',
+            sender_id: parentData.id,
+            child_id: childId,
+            payload,
+            created_at: new Date().toISOString(),
+        });
+        getClient().from('realtime_commands').insert({
+            id: commandId,
+            family_id: parentData.familyId,
+            sender_id: parentData.id,
+            child_id: childId,
+            command_type: 'settings_sync',
+            payload,
+        }).then();
+    }, [channel, parentData, childId]);
 
     const adjustTime = (delta: number) => {
-        setTimeLimit(prev => Math.max(15, Math.min(120, prev + delta)));
+        if (!settings || !childId || !parentData) return;
+        const next = Math.max(15, Math.min(120, settings.daily_time_limit_minutes + delta));
+        setSettings({ ...settings, daily_time_limit_minutes: next });
+        upsertChildSettings(parentData.id, childId, { daily_time_limit_minutes: next });
+        broadcastSettingsSync({ daily_limit_minutes: next });
     };
 
-    const handleToggle = async (contentType: string, enabled: boolean) => {
-        if (!childId) return;
-        await toggleCategory(childId, contentType, enabled);
+    const handleCoarseToggle = (field: keyof ChildSettings, enabled: boolean) => {
+        if (!settings || !childId || !parentData) return;
+        setSettings({ ...settings, [field]: enabled });
+        upsertChildSettings(parentData.id, childId, { [field]: enabled });
+        const payloadKey = field; // matches SettingsSyncPayload field names
+        broadcastSettingsSync({ [payloadKey]: enabled });
+    };
+
+    const handleCategoryToggle = (category: string, enabled: boolean) => {
+        if (!childId || !parentData || !channel) return;
+        toggleCategory(childId, category, enabled);
+        const commandId = generateCommandId();
+        broadcastCommand(channel, {
+            command_id: commandId,
+            command_type: 'category_block',
+            sender_id: parentData.id,
+            child_id: childId,
+            payload: { category, is_allowed: enabled },
+            created_at: new Date().toISOString(),
+        });
+        getClient().from('realtime_commands').insert({
+            id: commandId,
+            family_id: parentData.familyId,
+            sender_id: parentData.id,
+            child_id: childId,
+            command_type: 'category_block',
+            payload: { category, is_allowed: enabled },
+        }).then();
     };
 
     if (!child) {
@@ -107,18 +159,15 @@ export default function SettingsChildProfileScreen() {
                     </View>
                 </View>
 
-                {/* ── Loading state for preferences ── */}
-                {isLoading && (
+                {/* ── Content Permissions — coarse, per-child, parent_settings ── */}
+                {settingsLoading || !settings ? (
                     <View style={styles.card}>
                         <View style={styles.centerState}>
                             <ActivityIndicator size="small" color={S.primary} />
-                            <Text style={styles.stateText}>Loading preferences...</Text>
+                            <Text style={styles.stateText}>Loading settings...</Text>
                         </View>
                     </View>
-                )}
-
-                {/* ── Content Permissions (live DB mutations) ── */}
-                {!isLoading && (
+                ) : (
                     <View style={styles.card}>
                         <View style={styles.cardHeaderRow}>
                             <Ionicons name="shield-checkmark-outline" size={20} color={S.primary} />
@@ -126,47 +175,81 @@ export default function SettingsChildProfileScreen() {
                         </View>
                         <View style={styles.cardDivider} />
 
-                        <ToggleRow icon="book-outline" label="Stories" value={storiesEnabled} onToggle={() => handleToggle('stories', !storiesEnabled)} />
+                        <ToggleRow icon="book-outline" label="Stories" value={settings.stories_enabled} onToggle={() => handleCoarseToggle('stories_enabled', !settings.stories_enabled)} />
                         <View style={styles.thinDivider} />
-                        <ToggleRow icon="game-controller-outline" label="Games" value={gamesEnabled} onToggle={() => handleToggle('games', !gamesEnabled)} />
+                        <ToggleRow icon="game-controller-outline" label="Games" value={settings.games_enabled} onToggle={() => handleCoarseToggle('games_enabled', !settings.games_enabled)} />
                         <View style={styles.thinDivider} />
-                        <ToggleRow icon="brush-outline" label="Creative Activities" value={creativeEnabled} onToggle={() => handleToggle('creative', !creativeEnabled)} />
+                        <ToggleRow icon="brush-outline" label="Creative Activities" value={settings.creative_enabled} onToggle={() => handleCoarseToggle('creative_enabled', !settings.creative_enabled)} />
                         <View style={styles.thinDivider} />
-                        <ToggleRow icon="videocam-outline" label="Videos" value={videosEnabled} onToggle={() => handleToggle('videos', !videosEnabled)} />
+                        <ToggleRow icon="videocam-outline" label="Videos" value={settings.videos_enabled} onToggle={() => handleCoarseToggle('videos_enabled', !settings.videos_enabled)} />
                     </View>
                 )}
 
-                {/* ── Daily Time Limit ── */}
+                {/* ── Category Preferences — fine-grained, per-child, category_preferences ── */}
                 <View style={styles.card}>
                     <View style={styles.cardHeaderRow}>
-                        <Ionicons name="time-outline" size={20} color={S.primary} />
-                        <Text style={styles.cardSectionTitle}>Daily Time Limit</Text>
+                        <Ionicons name="list-outline" size={20} color={S.primary} />
+                        <Text style={styles.cardSectionTitle}>Category Preferences</Text>
                     </View>
                     <View style={styles.cardDivider} />
 
-                    <View style={styles.timeLimitRow}>
-                        <TouchableOpacity style={styles.timeBtn} onPress={() => adjustTime(-15)}>
-                            <Ionicons name="remove" size={22} color={S.primary} />
-                        </TouchableOpacity>
+                    {catLoading ? (
+                        <View style={styles.centerState}>
+                            <ActivityIndicator size="small" color={S.primary} />
+                            <Text style={styles.stateText}>Loading preferences...</Text>
+                        </View>
+                    ) : (
+                        KNOWN_CATEGORIES.map((category, i) => {
+                            const pref = preferences.find((p) => p.child_id === childId && p.category === category);
+                            const isAllowed = pref?.is_allowed ?? true;
+                            return (
+                                <React.Fragment key={category}>
+                                    {i > 0 && <View style={styles.thinDivider} />}
+                                    <ToggleRow
+                                        icon="pricetag-outline"
+                                        label={category}
+                                        value={isAllowed}
+                                        onToggle={() => handleCategoryToggle(category, !isAllowed)}
+                                    />
+                                </React.Fragment>
+                            );
+                        })
+                    )}
+                </View>
 
-                        <View style={styles.timeDisplay}>
-                            <Text style={styles.timeValue}>{timeLimit}</Text>
-                            <Text style={styles.timeUnit}>minutes</Text>
+                {/* ── Daily Time Limit — per-child, parent_settings ── */}
+                {settings && (
+                    <View style={styles.card}>
+                        <View style={styles.cardHeaderRow}>
+                            <Ionicons name="time-outline" size={20} color={S.primary} />
+                            <Text style={styles.cardSectionTitle}>Daily Time Limit</Text>
+                        </View>
+                        <View style={styles.cardDivider} />
+
+                        <View style={styles.timeLimitRow}>
+                            <TouchableOpacity style={styles.timeBtn} onPress={() => adjustTime(-15)}>
+                                <Ionicons name="remove" size={22} color={S.primary} />
+                            </TouchableOpacity>
+
+                            <View style={styles.timeDisplay}>
+                                <Text style={styles.timeValue}>{settings.daily_time_limit_minutes}</Text>
+                                <Text style={styles.timeUnit}>minutes</Text>
+                            </View>
+
+                            <TouchableOpacity style={styles.timeBtn} onPress={() => adjustTime(15)}>
+                                <Ionicons name="add" size={22} color={S.primary} />
+                            </TouchableOpacity>
                         </View>
 
-                        <TouchableOpacity style={styles.timeBtn} onPress={() => adjustTime(15)}>
-                            <Ionicons name="add" size={22} color={S.primary} />
-                        </TouchableOpacity>
+                        <View style={styles.timeBar}>
+                            <View style={[styles.timeBarFill, { width: `${((settings.daily_time_limit_minutes - 15) / 105) * 100}%` }]} />
+                        </View>
+                        <View style={styles.timeLabels}>
+                            <Text style={styles.timeLabelText}>15 min</Text>
+                            <Text style={styles.timeLabelText}>120 min</Text>
+                        </View>
                     </View>
-
-                    <View style={styles.timeBar}>
-                        <View style={[styles.timeBarFill, { width: `${((timeLimit - 15) / 105) * 100}%` }]} />
-                    </View>
-                    <View style={styles.timeLabels}>
-                        <Text style={styles.timeLabelText}>15 min</Text>
-                        <Text style={styles.timeLabelText}>120 min</Text>
-                    </View>
-                </View>
+                )}
 
                 {/* ── Danger Zone ── */}
                 <View style={styles.dangerCard}>
@@ -243,16 +326,6 @@ const styles = StyleSheet.create({
     cardSectionTitle: { fontSize: 18, fontWeight: '600', color: S.onSurface },
     cardDivider: { height: 1, backgroundColor: S.outlineVariant, marginVertical: 12 },
     thinDivider: { height: 1, backgroundColor: S.outlineVariant, marginVertical: 4 },
-
-    // Stats grid
-    statsGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-    statBox: {
-        flex: 1, alignItems: 'center', paddingVertical: 16,
-        backgroundColor: S.surfaceLow, borderRadius: 12,
-        borderWidth: 1, borderColor: S.outlineVariant,
-    },
-    statValue: { fontSize: 18, fontWeight: '700', color: S.onSurface, marginTop: 8 },
-    statLabel: { fontSize: 11, color: S.onSurfaceVariant, marginTop: 2 },
 
     // Toggle rows
     toggleRow: {

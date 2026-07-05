@@ -4,7 +4,7 @@
  * and floating glow blobs like the reception area.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useStories } from '../../services/api/stories';
+import { getBiDiStyle, formatBiDiText } from '../../services/utils/bidi';
 
 const fallbackColors = [
     { coverBg: '#E1D4FD', btnBg: Colors.child.primaryFixed, btnBorder: Colors.child.primaryFixedDim, btnTextColor: Colors.child.primary },
@@ -90,12 +91,16 @@ export default function StoriesScreen() {
                             <View style={styles.storyCard}>
                                 {/* Cover Illustration */}
                                 <View style={[styles.coverArea, { backgroundColor: colors.coverBg }]}>
-                                    <Text style={styles.coverEmoji}>{story.thumbnail_url || '📖'}</Text>
+                                    {story.thumbnail_url ? (
+                                        <Image source={{ uri: story.thumbnail_url }} style={styles.coverImage} />
+                                    ) : (
+                                        <Text style={styles.coverEmoji}>📖</Text>
+                                    )}
                                 </View>
 
                                 {/* Info Area */}
                                 <View style={styles.infoArea}>
-                                    <Text style={styles.storyTitle}>{story.title}</Text>
+                                    <Text style={[styles.storyTitle, getBiDiStyle(story.title)]}>{formatBiDiText(story.title)}</Text>
                                     <Text style={styles.storyCategory}>{story.category}</Text>
 
                                     {/* Read Now Button (3D) */}
@@ -202,6 +207,11 @@ const styles = StyleSheet.create({
         height: 200,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    coverImage: {
+        width: '100%',
+        height: '100%',
     },
     coverEmoji: {
         fontSize: 90,

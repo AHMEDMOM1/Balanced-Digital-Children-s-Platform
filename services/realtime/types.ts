@@ -1,5 +1,5 @@
 // Command types that can be sent from parent to child
-export type CommandType = 'pause' | 'resume' | 'time_update' | 'category_block' | 'force_end';
+export type CommandType = 'pause' | 'resume' | 'time_update' | 'category_block' | 'force_end' | 'settings_sync';
 
 // The command payload sent via Supabase Broadcast AND stored in realtime_commands table
 export interface RealtimeCommand {
@@ -17,6 +17,8 @@ export interface HeartbeatEvent {
   timestamp: string;        // ISO 8601
   session_active: boolean;
   elapsed_seconds: number;
+  current_activity?: 'story' | 'game' | 'video' | 'creative';
+  current_content_id?: string;
 }
 
 // Acknowledgement sent from child to parent after applying a command
@@ -34,4 +36,12 @@ export interface TimeUpdatePayload {
 export interface CategoryBlockPayload {
   category: string;
   is_allowed: boolean;
+}
+
+export interface SettingsSyncPayload {
+  daily_limit_minutes?: number;
+  stories_enabled?: boolean;
+  games_enabled?: boolean;
+  creative_enabled?: boolean;
+  videos_enabled?: boolean;
 }

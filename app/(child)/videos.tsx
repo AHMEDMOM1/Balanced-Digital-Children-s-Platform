@@ -3,7 +3,7 @@
  * Gradient background with glow blobs matching reception area aesthetic.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useVideos } from '../../services/api/videos';
+import { getBiDiStyle, formatBiDiText } from '../../services/utils/bidi';
 
 const fallbackVideoStyles = [
     { thumbBg: '#D4E7D1', titleColor: '#6750A4', borderColor: 'rgba(79, 55, 138, 0.2)', shadowColor: Colors.child.primary },
@@ -99,7 +100,11 @@ export default function VideosScreen() {
                             >
                                 {/* Thumbnail Area */}
                                 <View style={[styles.thumbnailArea, { backgroundColor: vstyle.thumbBg }]}>
-                                    <Text style={styles.thumbnailEmoji}>{video.thumbnail_url || '🎬'}</Text>
+                                    {video.thumbnail_url ? (
+                                        <Image source={{ uri: video.thumbnail_url }} style={styles.thumbnailImage} />
+                                    ) : (
+                                        <Text style={styles.thumbnailEmoji}>🎬</Text>
+                                    )}
                                     {/* Play Overlay */}
                                     <View style={styles.playOverlay}>
                                         <View style={styles.playCircle}>
@@ -110,8 +115,8 @@ export default function VideosScreen() {
 
                                 {/* Info Area */}
                                 <View style={styles.infoArea}>
-                                    <Text style={[styles.videoTitle, { color: vstyle.titleColor }]}>
-                                        {video.title}
+                                    <Text style={[styles.videoTitle, { color: vstyle.titleColor }, getBiDiStyle(video.title)]}>
+                                        {formatBiDiText(video.title)}
                                     </Text>
                                     <Text style={styles.videoDesc}>{video.category}</Text>
                                 </View>
@@ -197,6 +202,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
+        overflow: 'hidden',
+    },
+    thumbnailImage: {
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
     },
     thumbnailEmoji: {
         fontSize: 64,

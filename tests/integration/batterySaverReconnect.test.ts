@@ -19,7 +19,7 @@ jest.mock('react-native', () => ({
   },
 }));
 
-import { ConnectivityManager } from '../../../services/resilience/connectivityManager';
+import { ConnectivityManager } from '../../services/resilience/connectivityManager';
 import * as Battery from 'expo-battery';
 
 describe('BatterySaver reconnect interval', () => {
@@ -51,7 +51,7 @@ describe('BatterySaver reconnect interval', () => {
     await m.start();
     expect(m.getReconnectionInterval()).toBe(1000);
 
-    batteryCb?.({ lowPowerMode: true });
+    batteryCb!({ lowPowerMode: true });
     expect(m.getReconnectionInterval()).toBe(15_000);
 
     m.stop();
@@ -69,7 +69,7 @@ describe('BatterySaver reconnect interval', () => {
     await m.start();
     expect(m.getReconnectionInterval()).toBe(15_000);
 
-    batteryCb?.({ lowPowerMode: false });
+    batteryCb!({ lowPowerMode: false });
     expect(m.getReconnectionInterval()).toBe(1000);
 
     m.stop();

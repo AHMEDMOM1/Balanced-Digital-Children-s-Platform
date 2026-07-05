@@ -34,6 +34,7 @@ describe('SessionManager', () => {
         expect.stringContaining('INSERT OR REPLACE INTO session_persistence'),
         expect.any(String),
         expect.any(String),
+        expect.any(String),
         expect.any(Number),
         expect.any(Number),
         expect.any(Number),

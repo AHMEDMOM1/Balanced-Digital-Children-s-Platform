@@ -16,6 +16,7 @@ interface AuthStoreState extends AuthState {
 
 const useAuthStore = create<AuthStoreState>((set) => ({
   isAuthenticated: false,
+  authSource: null,
   role: null,
   token: null,
   parentData: null,
@@ -38,6 +39,7 @@ const useAuthStore = create<AuthStoreState>((set) => ({
     await logoutService();
     set({
       isAuthenticated: false,
+      authSource: null,
       role: null,
       token: null,
       parentData: null,

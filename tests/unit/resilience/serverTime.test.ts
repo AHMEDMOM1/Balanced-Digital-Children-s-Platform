@@ -5,11 +5,10 @@
  */
 import { timeSync } from '../../../services/resilience/timeSync';
 
-jest.mock('../../../services/api/client', () => ({
-  getClient: jest.fn(() => ({
-    rpc: jest.fn(),
-  })),
-}));
+jest.mock('../../../services/api/client', () => {
+  const rpcMock = jest.fn();
+  return { getClient: jest.fn(() => ({ rpc: rpcMock })) };
+});
 
 function getMockRpc() {
   const { getClient } = jest.requireMock('../../../services/api/client');
@@ -17,6 +16,10 @@ function getMockRpc() {
 }
 
 beforeEach(() => {
+  getMockRpc().mockClear();
+  (timeSync as any).cachedOffset = 0;
+  (timeSync as any).lastSyncAt = 0;
+  (timeSync as any).syncInFlight = null;
   jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
 });
 

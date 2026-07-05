@@ -1,6 +1,13 @@
 import { pinRecoveryManager } from '../../../services/resilience/pinRecoveryManager';
 import { getDB } from '../../../services/resilience/db';
 
+jest.mock('../../../services/api/client', () => ({
+  getClient: jest.fn(() => ({
+    rpc: jest.fn(async () => ({ error: null })),
+    from: jest.fn(() => ({ select: jest.fn(() => ({ eq: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn(async () => ({ data: null, error: null })) })) })) })) })),
+  })),
+}));
+
 jest.mock('../../../services/resilience/db', () => ({
   getDB: jest.fn(),
 }));

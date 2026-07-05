@@ -1,6 +1,9 @@
 import { getClient } from './client';
 import type { ContentItem, ContentType } from './types';
 
+export const selectExtendedColumns =
+  'id,title,type,category,min_age,max_age,url,thumbnail_url,created_at,duration_seconds,content_text,assets_url,game_type,config_json,page_images';
+
 export const AGE_GROUP_RANGES: Record<string, { min: number; max: number }> = {
   '2-4': { min: 2, max: 4 },
   '5-7': { min: 5, max: 7 },
@@ -20,6 +23,19 @@ export async function fetchBlockedCategories(childId: string): Promise<string[]>
   return data.map((p: { category: string }) => p.category);
 }
 
+// Fetch content item IDs explicitly disabled for this child via child_content_preferences.
+// Items without a row are considered enabled by default (opt-out model).
+export async function fetchDisabledContentIds(childId: string): Promise<string[]> {
+  const client = getClient();
+  const { data, error } = await client
+    .from('child_content_preferences')
+    .select('content_id')
+    .eq('child_id', childId)
+    .eq('enabled', false);
+  if (error || !data) return [];
+  return data.map((p: { content_id: string }) => p.content_id);
+}
+
 export async function fetchChildAgeGroup(
   childId: string,
 ): Promise<{ min: number; max: number } | null> {
@@ -33,12 +49,14 @@ export async function fetchChildAgeGroup(
   return AGE_GROUP_RANGES[data.age_group] || null;
 }
 
-// Build content query with opt-out category exclusion (NOT IN blocked) and age filter.
+// Build content query with opt-out category exclusion (NOT IN blocked),
+// per-item exclusion (NOT IN disabled), and age filter.
 export function buildContentQuery(
   from: ReturnType<ReturnType<typeof getClient>['from']>,
   type: ContentType,
   ageRange: { min: number; max: number } | null,
   blockedCategories: string[],
+  disabledContentIds: string[] = [],
 ): any {
   let query: any = (from as any).select('*').eq('type', type);
 
@@ -48,6 +66,11 @@ export function buildContentQuery(
 
   if (blockedCategories.length > 0) {
     query = query.not('category', 'in', `(${blockedCategories.join(',')})`);
+  }
+
+  // Layer 2: exclude individually disabled content items
+  if (disabledContentIds.length > 0) {
+    query = query.not('id', 'in', `(${disabledContentIds.join(',')})`);
   }
 
   return query;

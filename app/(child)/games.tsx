@@ -3,7 +3,7 @@
  * Gradient background with glow blobs matching Stitch reception area aesthetic.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,12 +16,14 @@ import Colors from '../../constants/Colors';
 import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useGames } from '../../services/api/games';
+import type { GameItem } from '../../services/api/types';
+import { getBiDiStyle, formatBiDiText } from '../../services/utils/bidi';
 
-const gameCardStyles = [
-    { bg: 'rgba(255,218,214,0.85)', icon: 'extension-puzzle', borderColor: 'rgba(186, 26, 26, 0.2)', titleColor: '#93000A' },
-    { bg: 'rgba(255,223,147,0.85)', icon: 'shapes', borderColor: 'rgba(118, 91, 0, 0.2)', titleColor: '#241A00' },
-    { bg: 'rgba(225,212,253,0.85)', icon: 'color-palette', borderColor: 'rgba(99, 89, 124, 0.2)', titleColor: '#645A7D' },
-];
+const gameStyles: Record<string, { bg: string; icon: string; borderColor: string; titleColor: string }> = {
+    counting: { bg: 'rgba(255,218,214,0.85)', icon: 'calculator', borderColor: 'rgba(186, 26, 26, 0.2)', titleColor: '#93000A' },
+    matching: { bg: 'rgba(255,223,147,0.85)', icon: 'shapes', borderColor: 'rgba(118, 91, 0, 0.2)', titleColor: '#241A00' },
+    memory: { bg: 'rgba(225,212,253,0.85)', icon: 'grid', borderColor: 'rgba(99, 89, 124, 0.2)', titleColor: '#645A7D' },
+};
 
 export default function GamesScreen() {
     const router = useRouter();
@@ -95,49 +97,35 @@ export default function GamesScreen() {
                     </View>
                 )}
 
-                {/* ── Bento Grid ── */}
-                {games && games.length > 0 && (
-                    <View style={styles.bentoGrid}>
-                        {/* First game — Full Width */}
-                        {games[0] && (
-                            <Animated.View entering={FadeInDown.delay(150).duration(500)}>
-                                <TouchableOpacity
-                                    activeOpacity={0.85}
-                                    style={styles.cardFull}
-                                    onPress={() => router.push(`/(child)/game/${games[0].id}`)}
-                                >
-                                    <Ionicons name={gameCardStyles[0].icon as any} size={64} color="rgba(147, 0, 10, 0.7)" />
-                                    <Text style={styles.cardFullTitle}>{games[0].title}</Text>
-                                </TouchableOpacity>
-                            </Animated.View>
-                        )}
-
-                        {/* Remaining games in half-cards row */}
-                        {games.length > 1 && (
-                            <View style={styles.halfRow}>
-                                {games.slice(1, 3).map((game, i) => {
-                                    const cardStyle = gameCardStyles[i + 1] || gameCardStyles[0];
-                                    return (
-                                        <Animated.View
-                                            key={game.id}
-                                            entering={FadeInDown.delay(300 + i * 100).duration(500)}
-                                            style={styles.halfCardWrapper}
-                                        >
-                                            <TouchableOpacity
-                                                activeOpacity={0.85}
-                                                style={[styles.cardHalf, { backgroundColor: cardStyle.bg, borderBottomColor: cardStyle.borderColor }]}
-                                                onPress={() => router.push(`/(child)/game/${game.id}`)}
-                                            >
-                                                <Ionicons name={cardStyle.icon as any} size={56} color={cardStyle.titleColor.replace('#', 'rgba(') + ', 0.7)'} />
-                                                <Text style={[styles.cardHalfTitle, { color: cardStyle.titleColor }]}>{game.title}</Text>
-                                            </TouchableOpacity>
-                                        </Animated.View>
-                                    );
-                                })}
-                            </View>
-                        )}
-                    </View>
-                )}
+                {/* ── Game Cards ── */}
+                {(games as GameItem[])?.map((game, index) => {
+                    const gs = gameStyles[game.game_type || 'counting'] || gameStyles.counting;
+                    return (
+                        <Animated.View
+                            key={game.id}
+                            entering={FadeInDown.delay(index * 120).duration(500)}
+                        >
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[styles.gameCard, { backgroundColor: gs.bg, borderBottomColor: gs.borderColor }]}
+                                onPress={() => router.push(`/(child)/game/${game.id}`)}
+                            >
+                                <View style={styles.gameIconArea}>
+                                    <Ionicons name={gs.icon as any} size={48} color={gs.titleColor.replace('#', 'rgba(') + ', 0.7)'} />
+                                </View>
+                                <View style={styles.gameInfoArea}>
+                                    <Text style={[styles.gameTitle, { color: gs.titleColor }, getBiDiStyle(game.title)]}>
+                                        {formatBiDiText(game.title)}
+                                    </Text>
+                                    <Text style={styles.gameBadge}>
+                                        {game.game_type === 'counting' ? '🔢 Count' : game.game_type === 'memory' ? '🧠 Memory' : '🎯 Match'}
+                                    </Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={24} color={gs.titleColor} />
+                            </TouchableOpacity>
+                        </Animated.View>
+                    );
+                })}
             </ScrollView>
         </LinearGradient>
     );
@@ -223,42 +211,42 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 
-    // ── Bento Grid ──
-    bentoGrid: {
-        gap: 20,
-    },
-
-    // Full-width card (Puzzle Party — pink/error-container)
-    cardFull: {
+    // ── Game Cards ──
+    gameCard: {
         width: '100%',
-        backgroundColor: 'rgba(255,218,214,0.85)',
         borderRadius: 16,
-        paddingVertical: 32,
+        paddingVertical: 20,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        borderBottomWidth: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    gameIconArea: {
+        width: 64,
+        height: 64,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.6)',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 16,
-        // 3D depth
-        borderBottomWidth: 6,
-        borderBottomColor: 'rgba(186, 26, 26, 0.2)',
-        // Shadow
-        shadowColor: '#FFDAD6',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        elevation: 5,
     },
-    cardFullTitle: {
-        ...Typography.child.title,
-        color: '#93000A',
-    },
-
-    // Half cards row
-    halfRow: {
-        flexDirection: 'row',
-        gap: 20,
-    },
-    halfCardWrapper: {
+    gameInfoArea: {
         flex: 1,
+        gap: 4,
+    },
+    gameTitle: {
+        ...Typography.child.title,
+        fontSize: 17,
+    },
+    gameBadge: {
+        ...Typography.child.body,
+        fontSize: 13,
+        color: '#666',
     },
 
     // States
@@ -290,24 +278,6 @@ const styles = StyleSheet.create({
         ...Typography.child.body,
         fontSize: 13,
         color: '#765B00',
-    },
-
-    // Half card — Unified
-    cardHalf: {
-        borderRadius: 16,
-        paddingVertical: 28,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 16,
-        borderBottomWidth: 6,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        elevation: 5,
-    },
-    cardHalfTitle: {
-        ...Typography.child.subtitle,
-        textAlign: 'center',
     },
 });
 

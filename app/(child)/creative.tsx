@@ -2,7 +2,7 @@
  * Creative Screen — Stitch "Create & Imagine" Activity Picker
  * Gradient background with glow blobs matching reception area aesthetic.
  */
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -16,7 +16,9 @@ import Typography from '../../constants/Typography';
 import Layout from '../../constants/Layout';
 import { useCreative } from '../../services/api/creative';
 import EmptyState from '../../components/ui/EmptyState';
-import { getBiDiStyle, isArabic } from '../../services/utils/bidi';
+import { getBiDiStyle, isArabic, formatBiDiText } from '../../services/utils/bidi';
+import useAuthStore from '../../store/useAuthStore';
+import { useSessionWriter } from '../../services/api/sessions';
 
 const activityIcons: Record<string, string> = {
     'Art': 'color-palette',
@@ -42,6 +44,24 @@ const activityColorStyles: Record<string, { bg: string; iconCircle: string; titl
 export default function CreativeScreen() {
     const router = useRouter();
     const { data: activities, isLoading, isOffline, error } = useCreative();
+    const childData = useAuthStore((s) => s.childData);
+    const mountTimeRef = useRef(Date.now());
+    const { openSession, closeSession } = useSessionWriter(
+        childData?.id ?? '',
+        childData?.familyId ?? '',
+        'creative'
+    );
+
+    useEffect(() => {
+        if (!childData?.id) return;
+        mountTimeRef.current = Date.now();
+        openSession();
+        return () => {
+            const elapsed = Math.round((Date.now() - mountTimeRef.current) / 1000);
+            closeSession(elapsed);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <LinearGradient colors={['#FFF8E8', '#FDF7FF', '#F2EEFF']} style={styles.safe}>
@@ -124,7 +144,7 @@ export default function CreativeScreen() {
                                     <TouchableOpacity
                                         activeOpacity={0.85}
                                         style={[styles.activityCard, { backgroundColor: cStyle.bg, borderBottomColor: cStyle.border }]}
-                                        onPress={() => router.push(route as any)}
+                                        onPress={() => router.push(`/(child)/creative-detail?id=${activity.id}` as any)}
                                     >
                                         <View style={[styles.glowBlob, { backgroundColor: cStyle.glow }]} />
 
@@ -134,11 +154,8 @@ export default function CreativeScreen() {
 
                                         <View style={styles.cardTextArea}>
                                             <Text style={[styles.activityTitle, { color: cStyle.titleColor }, getBiDiStyle(activity.title)]}>
-                                                {activity.title}
+                                                {formatBiDiText(activity.title)}
                                             </Text>
-                                            {activity.description && (
-                                                <Text style={[styles.activityDesc, getBiDiStyle(activity.description)]}>{activity.description}</Text>
-                                            )}
                                         </View>
                                     </TouchableOpacity>
                                 </Animated.View>
